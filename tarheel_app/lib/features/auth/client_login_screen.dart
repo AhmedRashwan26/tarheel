@@ -190,7 +190,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'أهلاً بك مجدداً!',
+          'حياك الله مجدداً!',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
         ),
         const SizedBox(height: 6),

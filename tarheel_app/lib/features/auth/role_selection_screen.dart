@@ -45,7 +45,7 @@ class RoleSelectionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     const Text(
-                      'مرحباً بك في ترحيل',
+                      'حياك الله في ترحيل',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
