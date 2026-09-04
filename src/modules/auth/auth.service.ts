@@ -17,23 +17,58 @@ export class AuthService {
     private otpSender: OtpSenderService,
   ) {}
 
+  private normalizeIdentifier(raw: string): string {
+    const trimmed = raw.trim();
+    if (trimmed.includes('@')) {
+      return trimmed.toLowerCase();
+    }
+    let clean = trimmed.replace(/[^0-9]/g, '');
+    if (clean.startsWith('00')) {
+      clean = clean.substring(2);
+    }
+    // Saudi Arabia: 05XXXXXXXX (10 digits) -> 9665XXXXXXXX
+    if (clean.startsWith('05') && clean.length === 10) {
+      return '966' + clean.substring(1);
+    }
+    // Saudi Arabia: 5XXXXXXXX (9 digits) -> 9665XXXXXXXX
+    if (clean.startsWith('5') && clean.length === 9) {
+      return '966' + clean;
+    }
+    // Egypt: 01XXXXXXXXX (11 digits) -> 201XXXXXXXXX
+    if (clean.startsWith('01') && clean.length === 11) {
+      return '20' + clean.substring(1);
+    }
+    return clean || trimmed;
+  }
+
   async sendOtp(dto: LoginPhoneDto) {
     const isEmail = dto.identifier.includes('@');
-    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
+    const normalizedIdentifier = this.normalizeIdentifier(dto.identifier);
     
     // Generate real random 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store in OTP memory store for 10 minutes
-    AuthService.otpStore.set(normalizedIdentifier, {
+    const otpData = {
       code: otpCode,
       expiresAt: Date.now() + 10 * 60 * 1000,
-    });
+    };
+
+    // Store under both normalized and raw identifier
+    AuthService.otpStore.set(normalizedIdentifier, otpData);
+    if (normalizedIdentifier !== dto.identifier.trim().toLowerCase()) {
+      AuthService.otpStore.set(dto.identifier.trim().toLowerCase(), otpData);
+    }
 
     const user = await this.prisma.user.findFirst({
       where: isEmail
         ? { email: normalizedIdentifier }
-        : { phoneNumber: dto.identifier.trim() },
+        : {
+            OR: [
+              { phoneNumber: normalizedIdentifier },
+              { phoneNumber: dto.identifier.trim() },
+              { phoneNumber: '0' + normalizedIdentifier.replace(/^966/, '') },
+            ],
+          },
     });
 
     let selectedChannel = dto.channel;
@@ -52,12 +87,12 @@ export class AuthService {
         throw new BadRequestException('تعذر إرسال الرمز إلى البريد الإلكتروني. يرجى التأكد من صحة البريد أو تجربة الواتساب');
       }
     } else if (selectedChannel === OtpDeliveryChannel.WHATSAPP) {
-      const sent = await this.otpSender.sendWhatsAppOtp(dto.identifier.trim(), otpCode);
+      const sent = await this.otpSender.sendWhatsAppOtp(normalizedIdentifier, otpCode);
       if (!sent) {
         throw new BadRequestException('تعذر إرسال الرمز عبر الواتساب. يرجى التأكد من الرقم أو تجربة البريد الإلكتروني');
       }
     } else {
-      await this.otpSender.sendSmsOtp(dto.identifier.trim(), otpCode);
+      await this.otpSender.sendSmsOtp(normalizedIdentifier, otpCode);
     }
 
     const channelNamesAr = {
@@ -69,6 +104,7 @@ export class AuthService {
     return {
       message: `تم إرسال رمز التحقق بنجاح عبر (${channelNamesAr[selectedChannel]})`,
       identifier: dto.identifier,
+      normalizedIdentifier,
       channel: selectedChannel,
       isRegistered: !!user,
       role: user?.role || null,
@@ -76,8 +112,8 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
-    const storedOtp = AuthService.otpStore.get(normalizedIdentifier);
+    const normalizedIdentifier = this.normalizeIdentifier(dto.identifier);
+    const storedOtp = AuthService.otpStore.get(normalizedIdentifier) || AuthService.otpStore.get(dto.identifier.trim().toLowerCase());
 
     const isValidStored = storedOtp && storedOtp.code === dto.code.trim() && Date.now() <= storedOtp.expiresAt;
 
@@ -86,15 +122,20 @@ export class AuthService {
     }
 
     // Consume OTP once verified
-    if (storedOtp) {
-      AuthService.otpStore.delete(normalizedIdentifier);
-    }
+    AuthService.otpStore.delete(normalizedIdentifier);
+    AuthService.otpStore.delete(dto.identifier.trim().toLowerCase());
 
     const isEmail = dto.identifier.includes('@');
     const user = await this.prisma.user.findFirst({
       where: isEmail
-        ? { email: dto.identifier.toLowerCase().trim() }
-        : { phoneNumber: dto.identifier.trim() },
+        ? { email: normalizedIdentifier }
+        : {
+            OR: [
+              { phoneNumber: normalizedIdentifier },
+              { phoneNumber: dto.identifier.trim() },
+              { phoneNumber: '0' + normalizedIdentifier.replace(/^966/, '') },
+            ],
+          },
       include: { driverProfile: { include: { vehicle: true } } },
     });
 

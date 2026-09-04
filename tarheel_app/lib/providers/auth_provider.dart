@@ -64,18 +64,47 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  static String normalizeIdentifier(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.contains('@')) return trimmed.toLowerCase();
+    String clean = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (clean.startsWith('00')) clean = clean.substring(2);
+    // Saudi Arabia: 05XXXXXXXX (10 digits) -> 9665XXXXXXXX
+    if (clean.startsWith('05') && clean.length == 10) {
+      return '966${clean.substring(1)}';
+    }
+    // Saudi Arabia: 5XXXXXXXX (9 digits) -> 9665XXXXXXXX
+    if (clean.startsWith('5') && clean.length == 9) {
+      return '966$clean';
+    }
+    // Egypt: 01XXXXXXXXX (11 digits) -> 201XXXXXXXXX
+    if (clean.startsWith('01') && clean.length == 11) {
+      return '20${clean.substring(1)}';
+    }
+    return clean.isNotEmpty ? clean : trimmed;
+  }
+
   Future<bool> sendOtp(String identifier, {String channel = 'WHATSAPP'}) async {
     _errorMessage = null;
+    final normalized = normalizeIdentifier(identifier);
     try {
       final response = await _api.post(
         ApiEndpoints.sendOtp,
-        data: {'identifier': identifier, 'channel': channel},
+        data: {'identifier': normalized, 'channel': channel},
       );
       return response.data['success'] == true;
     } catch (e) {
-      // Seamless local dev fallback
-      debugPrint('Local dev fallback for OTP: $e');
-      return true;
+      if (e is DioException) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          _errorMessage = resData['message'].toString();
+        } else {
+          _errorMessage = 'تعذر إرسال رمز التحقق. يرجى التحقق من الرقم أو المحاولة لاحقاً';
+        }
+      } else {
+        _errorMessage = 'حدث خطأ في الاتصال بالخادم';
+      }
+      return false;
     }
   }
 
@@ -84,10 +113,11 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.loading;
     notifyListeners();
 
+    final normalized = normalizeIdentifier(identifier);
     try {
       final response = await _api.post(
         ApiEndpoints.verifyOtp,
-        data: {'identifier': identifier, 'code': code},
+        data: {'identifier': normalized, 'code': code},
       );
 
       final data = response.data['data'];

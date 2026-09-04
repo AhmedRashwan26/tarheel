@@ -41,6 +41,18 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (var r of registrations) { r.unregister(); }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (var n of names) { caches.delete(n); }
+      });
+    }
+  </script>
+  <script src="flutter_bootstrap.js?v=2" async></script>
 </body>
 </html>

@@ -93,6 +93,26 @@ app.get('/qr', (req, res) => {
   });
 });
 
+function normalizePhoneForWhatsApp(phone) {
+  let clean = phone.toString().replace(/[^0-9]/g, '');
+  if (clean.startsWith('00')) {
+    clean = clean.substring(2);
+  }
+  // Saudi Arabia: 05XXXXXXXX (10 digits) -> 9665XXXXXXXX
+  if (clean.startsWith('05') && clean.length === 10) {
+    clean = '966' + clean.substring(1);
+  }
+  // Saudi Arabia: 5XXXXXXXX (9 digits) -> 9665XXXXXXXX
+  else if (clean.startsWith('5') && clean.length === 9) {
+    clean = '966' + clean;
+  }
+  // Egypt: 01XXXXXXXXX (11 digits) -> 201XXXXXXXXX
+  else if (clean.startsWith('01') && clean.length === 11) {
+    clean = '20' + clean.substring(1);
+  }
+  return clean;
+}
+
 app.post('/send', async (req, res) => {
   const { to, message } = req.body;
 
@@ -105,14 +125,15 @@ app.post('/send', async (req, res) => {
   }
 
   try {
-    let cleanPhone = to.toString().replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('00')) {
-      cleanPhone = cleanPhone.substring(2);
-    }
+    const cleanPhone = normalizePhoneForWhatsApp(to);
     const jid = `${cleanPhone}@s.whatsapp.net`;
 
     console.log(`Sending WhatsApp message to ${jid}: ${message}`);
-    const result = await sock.sendMessage(jid, { text: message });
+    const sendPromise = sock.sendMessage(jid, { text: message });
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
+    );
+    const result = await Promise.race([sendPromise, timeoutPromise]);
 
     res.json({
       success: true,
