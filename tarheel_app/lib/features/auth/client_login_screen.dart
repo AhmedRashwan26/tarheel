@@ -41,6 +41,32 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
     super.dispose();
   }
 
+  bool get _isEmailInput {
+    final text = _loginIdentifierController.text.trim();
+    return text.contains('@');
+  }
+
+  bool get _isPhoneInput {
+    final text = _loginIdentifierController.text.trim();
+    if (text.isEmpty) return false;
+    return !text.contains('@') && RegExp(r'^[0-9+]+$').hasMatch(text);
+  }
+
+  void _onLoginIdentifierChanged(String value) {
+    setState(() {
+      final text = value.trim();
+      if (text.contains('@')) {
+        // Automatically switch to Email channel
+        _selectedChannel = 'EMAIL';
+      } else if (text.isNotEmpty && RegExp(r'^[0-9+]+$').hasMatch(text)) {
+        // If it's a phone number and previous was Email, switch to WhatsApp
+        if (_selectedChannel == 'EMAIL') {
+          _selectedChannel = 'WHATSAPP';
+        }
+      }
+    });
+  }
+
   Future<void> _handleLogin() async {
     final identifier = _loginIdentifierController.text.trim();
     if (identifier.isEmpty) {
@@ -167,7 +193,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
               const SizedBox(height: 28),
 
               SizedBox(
-                height: 480,
+                height: 520,
                 child: TabBarView(
                   controller: _tabController,
                   children: [
@@ -203,6 +229,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
         TextField(
           controller: _loginIdentifierController,
           keyboardType: TextInputType.emailAddress,
+          onChanged: _onLoginIdentifierChanged,
           decoration: const InputDecoration(
             labelText: 'رقم الجوال أو البريد الإلكتروني',
             hintText: '+9665xxxxxxxx أو name@email.com',
@@ -305,34 +332,62 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
   }
 
   Widget _buildChannelChip(String value, String label, IconData icon) {
-    final isSelected = _selectedChannel == value;
+    final isEmail = _isEmailInput;
+    final isPhone = _isPhoneInput;
+
+    bool isEnabled = true;
+    if (isEmail) {
+      // If typing email, only EMAIL is enabled
+      isEnabled = value == 'EMAIL';
+    } else if (isPhone) {
+      // If typing phone, only WHATSAPP and SMS are enabled (Email is disabled)
+      isEnabled = value != 'EMAIL';
+    }
+
+    final isSelected = _selectedChannel == value && isEnabled;
+
     return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedChannel = value),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.accent.withValues(alpha: 0.15) : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? AppColors.accent : AppColors.cardBorder,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 20, color: isSelected ? AppColors.accent : AppColors.textSecondary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.accent : AppColors.textSecondary,
-                ),
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.35,
+        child: InkWell(
+          onTap: isEnabled ? () => setState(() => _selectedChannel = value) : null,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.accent.withValues(alpha: 0.15)
+                  : (isEnabled ? Colors.white : Colors.grey.shade100),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.accent
+                    : (isEnabled ? AppColors.cardBorder : Colors.grey.shade300),
+                width: isSelected ? 2 : 1,
               ),
-            ],
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: isSelected
+                      ? AppColors.accent
+                      : (isEnabled ? AppColors.textSecondary : Colors.grey.shade400),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? AppColors.accent
+                        : (isEnabled ? AppColors.textSecondary : Colors.grey.shade400),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
