@@ -1,0 +1,15 @@
+{
+  "name": "tarheel-whatsapp-gateway",
+  "version": "1.0.0",
+  "description": "Self-hosted WhatsApp Gateway for Tarheel Platform",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.13",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}

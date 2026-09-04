@@ -36,18 +36,43 @@ export class OtpSenderService {
    * يدعم Meta WhatsApp Cloud API أو بوابات التراسل (Taqnyat/Twilio/Unifonic)
    */
   async sendWhatsAppOtp(phoneNumber: string, otpCode: string): Promise<boolean> {
+    const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL;
     const whatsappApiUrl = process.env.WHATSAPP_API_URL;
     const whatsappToken = process.env.WHATSAPP_API_TOKEN;
     const whatsappPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
     this.logger.log(`[WHATSAPP OTP] Sending code [${otpCode}] to [${phoneNumber}]`);
 
+    // 1. Try Self-Hosted WhatsApp Gateway if configured
+    if (gatewayUrl) {
+      try {
+        const response = await fetch(`${gatewayUrl}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: phoneNumber,
+            message: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n*${otpCode}*\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+          }),
+        });
+
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          this.logger.log(`✅ [Self-Hosted Gateway] WhatsApp OTP sent successfully to ${phoneNumber}`);
+          return true;
+        } else {
+          this.logger.warn(`WhatsApp Gateway response: ${JSON.stringify(resData)}`);
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to send via Self-Hosted WhatsApp Gateway: ${err.message}`);
+      }
+    }
+
+    // 2. Fallback to Meta Cloud API if available
     if (whatsappApiUrl && whatsappToken && whatsappPhoneNumberId) {
       try {
         const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
         const endpoint = `${whatsappApiUrl}/${whatsappPhoneNumberId}/messages`;
 
-        // Send WhatsApp Text Message with OTP
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -67,22 +92,17 @@ export class OtpSenderService {
         });
 
         const resData = await response.json();
-
-        if (!response.ok) {
-          this.logger.error(`WhatsApp API error response: ${JSON.stringify(resData)}`);
-          return false;
+        if (response.ok) {
+          this.logger.log(`✅ [Meta Cloud API] WhatsApp OTP sent successfully to ${phoneNumber}`);
+          return true;
         }
-
-        this.logger.log(`✅ WhatsApp OTP sent successfully to ${phoneNumber}`);
-        return true;
       } catch (error) {
-        this.logger.error(`Failed to send WhatsApp OTP: ${error.message}`);
-        return false;
+        this.logger.error(`Failed to send WhatsApp OTP via Meta: ${error.message}`);
       }
-    } else {
-      this.logger.log(`[DEV MODE] WhatsApp message simulated. Code: ${otpCode} for ${phoneNumber}`);
-      return true;
     }
+
+    this.logger.log(`[DEV MODE] WhatsApp message simulated. Code: ${otpCode} for ${phoneNumber}`);
+    return true;
   }
 
   /**

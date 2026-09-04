@@ -30,7 +30,22 @@ services:
     networks:
       - tarheel_network
 
-  # 3. Tarheel NestJS Backend API
+  # 3. WhatsApp Gateway (Self-Hosted Baileys Service)
+  whatsapp:
+    build:
+      context: ./whatsapp-gateway
+      dockerfile: Dockerfile
+    container_name: tarheel_whatsapp_prod
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      AUTH_DIR: /app/auth_info
+    volumes:
+      - whatsapp_prod_auth:/app/auth_info
+    networks:
+      - tarheel_network
+
+  # 4. Tarheel NestJS Backend API
   api:
     build:
       context: .
@@ -47,15 +62,18 @@ services:
       REDIS_HOST: "redis"
       REDIS_PORT: 6379
       UPLOAD_DIR: "./uploads"
+      WHATSAPP_GATEWAY_URL: "http://whatsapp:3001"
     depends_on:
       postgres:
         condition: service_healthy
+      whatsapp:
+        condition: service_started
     volumes:
       - ./uploads:/app/uploads
     networks:
       - tarheel_network
 
-  # 4. Nginx Web Server (Serves Flutter Web & Reverse Proxies API)
+  # 5. Nginx Web Server (Serves Flutter Web & Reverse Proxies API)
   web:
     build:
       context: .
@@ -69,6 +87,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - api
+      - whatsapp
     networks:
       - tarheel_network
 
@@ -79,3 +98,4 @@ networks:
 volumes:
   postgres_prod_data:
   redis_prod_data:
+  whatsapp_prod_auth:

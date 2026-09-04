@@ -30,6 +30,18 @@ services:
     volumes:
       - redis_data:/data
 
+  # WhatsApp Gateway Service (Self-Hosted)
+  whatsapp:
+    build:
+      context: ./whatsapp-gateway
+      dockerfile: Dockerfile
+    container_name: tarheel_whatsapp
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - whatsapp_auth:/app/auth_info
+
   # Tarheel Backend Application
   api:
     build:
@@ -39,7 +51,7 @@ services:
     restart: always
     environment:
       PORT: 3000
-      NODE_ENV: production
+      NODE_ENV: development
       DATABASE_URL: "postgresql://tarheel:tarheel_secret@postgres:5432/tarheel_db?schema=public"
       JWT_SECRET: "tarheel_super_secure_jwt_secret_key_2026_production_grade"
       JWT_EXPIRES_IN: "7d"
@@ -47,6 +59,7 @@ services:
       REDIS_HOST: "redis"
       REDIS_PORT: 6379
       UPLOAD_DIR: "./uploads"
+      WHATSAPP_GATEWAY_URL: "http://whatsapp:3001"
     ports:
       - "3000:3000"
     depends_on:
@@ -58,3 +71,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  whatsapp_auth:
