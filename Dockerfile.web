@@ -1,26 +1,13 @@
 # ==============================================================================
-# Tarheel Platform - Flutter Web Production Container
+# Tarheel Platform - Flutter Web Production Container (Pre-built Web Release)
 # ==============================================================================
 
-FROM ghcr.io/cirruslabs/flutter:3.41.7 AS builder
-
-WORKDIR /app/tarheel_app
-
-# Copy dependency specifications
-COPY tarheel_app/pubspec.yaml tarheel_app/pubspec.lock ./
-RUN flutter config --no-analytics
-RUN flutter pub get
-
-# Copy source code and assets
-COPY tarheel_app/ ./
-
-# Build optimized release Web bundle
-RUN flutter build web --release --base-href "/"
-
-# Production Nginx Runtime Stage
 FROM nginx:alpine
 
-COPY --from=builder /app/tarheel_app/build/web /usr/share/nginx/html
+# Copy pre-compiled Flutter Web Release Bundle
+COPY tarheel_app/build/web /usr/share/nginx/html
+
+# Copy optimized Nginx configuration
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80 443
