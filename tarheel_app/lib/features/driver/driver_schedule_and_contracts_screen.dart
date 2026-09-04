@@ -571,7 +571,7 @@ class _DriverScheduleAndContractsScreenState extends State<DriverScheduleAndCont
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        isOutbound ? 'ذهب ↗️' : 'عودة ↘️',
+                        isOutbound ? 'ذهاب ↗️' : 'عودة ↘️',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,

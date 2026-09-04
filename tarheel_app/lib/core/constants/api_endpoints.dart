@@ -1,9 +1,19 @@
 import 'package:flutter/foundation.dart';
 
 class ApiEndpoints {
+  static const String _customBaseUrl = String.fromEnvironment('API_BASE_URL');
+
   // Determine Base URL dynamically based on running platform
   static String get baseDomain {
-    if (kIsWeb) return 'http://localhost:3000';
+    if (_customBaseUrl.isNotEmpty) {
+      return _customBaseUrl;
+    }
+    if (kIsWeb) {
+      if (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1') {
+        return 'http://localhost:3000';
+      }
+      return Uri.base.origin;
+    }
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3000';
     }
