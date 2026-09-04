@@ -13,21 +13,22 @@ export class OtpSenderService {
   }
 
   private initMailTransporter() {
-    const host = 'smtp.gmail.com';
-    const port = 465;
     const user = 'tarheel.platform@gmail.com';
     const pass = 'wziqbufvxcxpfttg';
 
     this.mailTransporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: true,
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // STARTTLS for port 587
       auth: { user, pass },
       tls: {
         rejectUnauthorized: false,
       },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
     });
-    this.logger.log(`SMTP Mail Transporter initialized with sender: ${user}`);
+    this.logger.log(`SMTP Mail Transporter initialized with sender: ${user} on port 587 (STARTTLS)`);
   }
 
   public getTransporter(): nodemailer.Transporter {
@@ -38,19 +39,48 @@ export class OtpSenderService {
   }
 
   async testEmailDirect(to: string) {
-    const transporter = this.getTransporter();
+    const net = await import('net');
+    const testPort = (host: string, port: number): Promise<any> => {
+      return new Promise((resolve) => {
+        const socket = new net.Socket();
+        socket.setTimeout(3000);
+        socket.on('connect', () => {
+          socket.destroy();
+          resolve({ port, status: 'OPEN' });
+        });
+        socket.on('timeout', () => {
+          socket.destroy();
+          resolve({ port, status: 'TIMEOUT' });
+        });
+        socket.on('error', (err) => {
+          resolve({ port, status: 'ERROR', error: err.message });
+        });
+        socket.connect(port, host);
+      });
+    };
+
+    const port465 = await testPort('smtp.gmail.com', 465);
+    const port587 = await testPort('smtp.gmail.com', 587);
+
+    let sendResult: any = null;
     try {
+      const transporter = this.getTransporter();
       const info = await transporter.sendMail({
-        from: `"منصة ترحيل" <${process.env.SMTP_USER || 'tarheel.platform@gmail.com'}>`,
+        from: `"منصة ترحيل" <tarheel.platform@gmail.com>`,
         to,
         subject: '784920 هو رمز التحقق الخاص بك في ترحيل',
         text: 'رمز التحقق الخاص بك في ترحيل هو: 784920',
       });
-      return { success: true, messageId: info.messageId, to };
+      sendResult = { success: true, messageId: info.messageId };
     } catch (err) {
-      this.logger.error(`Diagnostic email error: ${err.message}`);
-      return { success: false, error: err.message };
+      sendResult = { success: false, error: err.message };
     }
+
+    return {
+      ports: { port465, port587 },
+      sendResult,
+      to,
+    };
   }
 
   /**

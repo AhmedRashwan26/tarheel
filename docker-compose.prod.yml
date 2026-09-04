@@ -65,7 +65,7 @@ services:
       WHATSAPP_GATEWAY_URL: "http://whatsapp:3001"
       EMAIL_FROM: "منصة ترحيل <tarheel.platform@gmail.com>"
       SMTP_HOST: "smtp.gmail.com"
-      SMTP_PORT: "465"
+      SMTP_PORT: "587"
       SMTP_USER: "tarheel.platform@gmail.com"
       SMTP_PASS: "wziqbufvxcxpfttg"
     depends_on:
