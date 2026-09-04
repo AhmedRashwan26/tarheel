@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
+import '../terms/terms_and_conditions_screen.dart';
 
 class DriverRegisterScreen extends StatefulWidget {
   const DriverRegisterScreen({super.key});
@@ -331,39 +332,48 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                // Policy Agreement Card
+                // Clean Terms & Conditions Agreement
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.amber.shade300),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.cardBorder),
                   ),
-                  child: Column(
+                  child: Row(
                     children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
-                          SizedBox(width: 8),
-                          Text('إقرار وشروط كابتن ترحيل الإلزامية', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '1. تخصم منصة ترحيل عمولة 10% فقط من قيمة التوصيل.\n'
-                        '2. تحول الأرباح (90%) مباشرة لحسابك البنكي بعد انتهاء مدة المشوار وتقييم الراكب.\n'
-                        '3. يمنع منعاً باتاً استلام أي مبالغ نقدية أو تحويلات مباشرة من الركاب ويعرض ذلك الحساب للحظر والمساءلة القانونية.',
-                        style: TextStyle(fontSize: 11, height: 1.5, color: Colors.black87),
-                      ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'أوافق على سياسة العمولة (10%) ومنع التعامل النقدي وتحويل المستحقات للآيبان المرفق',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
+                      Checkbox(
                         value: _agreeToAntiCashPolicy,
                         activeColor: AppColors.accent,
                         onChanged: (val) => setState(() => _agreeToAntiCashPolicy = val ?? false),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+                            );
+                          },
+                          child: const Text(
+                            'أتعهد بالموافقة والالتزام بكافة الشروط والأحكام الخاصة بالمنصة',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.open_in_new_rounded, size: 18, color: AppColors.accent),
+                        tooltip: 'عرض الشروط والأحكام',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+                          );
+                        },
                       ),
                     ],
                   ),

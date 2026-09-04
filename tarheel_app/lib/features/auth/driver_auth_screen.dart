@@ -677,34 +677,21 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
                   onChanged: (val) => setState(() => _agreeToTerms = val ?? false),
                 ),
                 Expanded(
-                  child: Row(
-                    children: [
-                      const Text(
-                        'أوافق على ',
-                        style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'أتعهد بالموافقة على الشروط والأحكام الخاصة بمنصة ترحيل',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
-                          );
-                        },
-                        child: const Text(
-                          'الشروط والأحكام',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accent,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                      const Text(
-                        ' وسياسات المنصة',
-                        style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
                 IconButton(
