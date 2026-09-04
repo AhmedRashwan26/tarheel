@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export enum OtpDeliveryChannel {
+  SMS = 'SMS',
+  WHATSAPP = 'WHATSAPP',
+  EMAIL = 'EMAIL',
+}
 
 export class LoginPhoneDto {
   @ApiProperty({
@@ -8,7 +14,17 @@ export class LoginPhoneDto {
   })
   @IsNotEmpty({ message: 'رقم الجوال أو البريد الإلكتروني مطلوب' })
   @IsString()
-  identifier: string; // Accepts phone number (e.g. +966501234567) or email (e.g. ahmed@gmail.com)
+  identifier: string;
+
+  @ApiProperty({
+    enum: OtpDeliveryChannel,
+    example: OtpDeliveryChannel.WHATSAPP,
+    required: false,
+    description: 'القناة المفضلة لاستلام الرمز: WHATSAPP (واتساب), SMS (رسالة نصية), EMAIL (بريد إلكتروني)',
+  })
+  @IsOptional()
+  @IsEnum(OtpDeliveryChannel)
+  channel?: OtpDeliveryChannel;
 }
 
 export class VerifyOtpDto {

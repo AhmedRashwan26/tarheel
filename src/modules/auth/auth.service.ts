@@ -2,18 +2,21 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterClientDto } from './dto/register-client.dto';
-import { LoginPhoneDto, VerifyOtpDto } from './dto/login-phone.dto';
+import { LoginPhoneDto, VerifyOtpDto, OtpDeliveryChannel } from './dto/login-phone.dto';
 import { Role } from '@prisma/client';
+import { OtpSenderService } from '../notifications/otp-sender.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private otpSender: OtpSenderService,
   ) {}
 
   async sendOtp(dto: LoginPhoneDto) {
     const isEmail = dto.identifier.includes('@');
+    const otpCode = '123456'; // In production: Math.floor(100000 + Math.random() * 900000).toString()
 
     const user = await this.prisma.user.findFirst({
       where: isEmail
@@ -21,12 +24,34 @@ export class AuthService {
         : { phoneNumber: dto.identifier.trim() },
     });
 
+    let selectedChannel = dto.channel;
+    if (!selectedChannel) {
+      selectedChannel = isEmail ? OtpDeliveryChannel.EMAIL : OtpDeliveryChannel.WHATSAPP;
+    }
+
+    if (isEmail && selectedChannel !== OtpDeliveryChannel.EMAIL) {
+      selectedChannel = OtpDeliveryChannel.EMAIL;
+    }
+
+    // Send via the selected channel
+    if (selectedChannel === OtpDeliveryChannel.EMAIL) {
+      await this.otpSender.sendEmailOtp(dto.identifier.toLowerCase().trim(), otpCode, user?.fullName);
+    } else if (selectedChannel === OtpDeliveryChannel.WHATSAPP) {
+      await this.otpSender.sendWhatsAppOtp(dto.identifier.trim(), otpCode);
+    } else {
+      await this.otpSender.sendSmsOtp(dto.identifier.trim(), otpCode);
+    }
+
+    const channelNamesAr = {
+      EMAIL: 'البريد الإلكتروني',
+      WHATSAPP: 'الواتساب',
+      SMS: 'الرسائل النصية SMS',
+    };
+
     return {
-      message: isEmail
-        ? 'تم إرسال رمز التحقق بنجاح إلى بريدك الإلكتروني'
-        : 'تم إرسال رمز التحقق بنجاح إلى رقم الجوال',
+      message: `تم إرسال رمز التحقق بنجاح عبر (${channelNamesAr[selectedChannel]})`,
       identifier: dto.identifier,
-      channel: isEmail ? 'EMAIL' : 'SMS',
+      channel: selectedChannel,
       isRegistered: !!user,
       role: user?.role || null,
       devOtpHint: '123456',
