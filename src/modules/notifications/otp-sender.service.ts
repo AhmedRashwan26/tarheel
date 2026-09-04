@@ -42,46 +42,34 @@ export class OtpSenderService {
 
     this.logger.log(`[WHATSAPP OTP] Sending code [${otpCode}] to [${phoneNumber}]`);
 
-    if (whatsappApiUrl && whatsappToken) {
+    if (whatsappApiUrl && whatsappToken && whatsappPhoneNumberId) {
       try {
-        // Meta WhatsApp Cloud API Integration
-        const response = await fetch(
-          whatsappPhoneNumberId
-            ? `${whatsappApiUrl}/${whatsappPhoneNumberId}/messages`
-            : whatsappApiUrl,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${whatsappToken}`,
-            },
-            body: JSON.stringify({
-              messaging_product: 'whatsapp',
-              to: phoneNumber.replace('+', ''),
-              type: 'template',
-              template: {
-                name: 'tarheel_otp_verification',
-                language: { code: 'ar' },
-                components: [
-                  {
-                    type: 'body',
-                    parameters: [{ type: 'text', text: otpCode }],
-                  },
-                  {
-                    type: 'button',
-                    sub_type: 'url',
-                    index: '0',
-                    parameters: [{ type: 'text', text: otpCode }],
-                  },
-                ],
-              },
-            }),
+        const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+        const endpoint = `${whatsappApiUrl}/${whatsappPhoneNumberId}/messages`;
+
+        // Send WhatsApp Text Message with OTP
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${whatsappToken}`,
           },
-        );
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: cleanPhone,
+            type: 'text',
+            text: {
+              preview_url: false,
+              body: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n*${otpCode}*\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+            },
+          }),
+        });
+
+        const resData = await response.json();
 
         if (!response.ok) {
-          const errText = await response.text();
-          this.logger.error(`WhatsApp API error response: ${errText}`);
+          this.logger.error(`WhatsApp API error response: ${JSON.stringify(resData)}`);
           return false;
         }
 

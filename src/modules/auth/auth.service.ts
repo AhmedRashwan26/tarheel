@@ -8,6 +8,9 @@ import { OtpSenderService } from '../notifications/otp-sender.service';
 
 @Injectable()
 export class AuthService {
+  // Key: identifier (phone or email), Value: { code: string, expiresAt: number }
+  private static otpStore = new Map<string, { code: string; expiresAt: number }>();
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -16,11 +19,20 @@ export class AuthService {
 
   async sendOtp(dto: LoginPhoneDto) {
     const isEmail = dto.identifier.includes('@');
-    const otpCode = '123456'; // In production: Math.floor(100000 + Math.random() * 900000).toString()
+    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
+    
+    // Generate real random 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in OTP memory store for 10 minutes
+    AuthService.otpStore.set(normalizedIdentifier, {
+      code: otpCode,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
 
     const user = await this.prisma.user.findFirst({
       where: isEmail
-        ? { email: dto.identifier.toLowerCase().trim() }
+        ? { email: normalizedIdentifier }
         : { phoneNumber: dto.identifier.trim() },
     });
 
@@ -35,7 +47,7 @@ export class AuthService {
 
     // Send via the selected channel
     if (selectedChannel === OtpDeliveryChannel.EMAIL) {
-      await this.otpSender.sendEmailOtp(dto.identifier.toLowerCase().trim(), otpCode, user?.fullName);
+      await this.otpSender.sendEmailOtp(normalizedIdentifier, otpCode, user?.fullName);
     } else if (selectedChannel === OtpDeliveryChannel.WHATSAPP) {
       await this.otpSender.sendWhatsAppOtp(dto.identifier.trim(), otpCode);
     } else {
@@ -54,13 +66,24 @@ export class AuthService {
       channel: selectedChannel,
       isRegistered: !!user,
       role: user?.role || null,
-      devOtpHint: '123456',
+      devOtpHint: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    if (dto.code !== '123456' && dto.code !== '000000') {
+    const normalizedIdentifier = dto.identifier.toLowerCase().trim();
+    const storedOtp = AuthService.otpStore.get(normalizedIdentifier);
+
+    const isValidStored = storedOtp && storedOtp.code === dto.code.trim() && Date.now() <= storedOtp.expiresAt;
+    const isDevBypass = dto.code === '000000' || dto.code === '123456';
+
+    if (!isValidStored && !isDevBypass) {
       throw new BadRequestException('رمز التحقق غير صحيح أو منتهي الصلاحية');
+    }
+
+    // Consume OTP once verified
+    if (storedOtp) {
+      AuthService.otpStore.delete(normalizedIdentifier);
     }
 
     const isEmail = dto.identifier.includes('@');
