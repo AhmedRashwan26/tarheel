@@ -28,11 +28,22 @@ else
     mkdir -p tarheel_app/build/web
 fi
 
+# Detect docker compose or docker-compose
+if docker compose version &> /dev/null; then
+    COMPOSE="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    COMPOSE="docker-compose"
+else
+    echo "📦 Installing docker compose..."
+    apt update && apt install -y docker-compose-plugin docker-compose
+    COMPOSE="docker compose"
+fi
+
 # Build and start Docker containers
-echo "🐳 [3/5] Building and starting Docker Production Containers..."
-docker-compose -f docker-compose.prod.yml down --remove-orphans || true
-docker-compose -f docker-compose.prod.yml build --no-cache
-docker-compose -f docker-compose.prod.yml up -d
+echo "🐳 [3/5] Building and starting Docker Production Containers using $COMPOSE..."
+$COMPOSE -f docker-compose.prod.yml down --remove-orphans || true
+$COMPOSE -f docker-compose.prod.yml build
+$COMPOSE -f docker-compose.prod.yml up -d
 
 # Wait for API to be ready
 echo "⏳ [4/5] Waiting for services to initialize..."
@@ -40,7 +51,7 @@ sleep 10
 
 # Display running containers
 echo "✅ [5/5] Deployment Finished Successfully!"
-docker-compose -f docker-compose.prod.yml ps
+$COMPOSE -f docker-compose.prod.yml ps
 
 echo "=================================================================="
 echo "🎉 Tarheel Platform is now LIVE!"
