@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
 import 'driver_feed_screen.dart';
+import 'driver_schedule_and_contracts_screen.dart';
 import '../chat/chat_room_screen.dart';
 import '../support/support_hub_screen.dart';
 import '../profile/profile_screen.dart';
@@ -31,7 +32,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       const DriverFeedScreen(),
-      _buildDriverContractsScreen(),
+      const DriverScheduleAndContractsScreen(),
       _buildDriverWalletScreen(),
       const SupportHubScreen(),
       const ProfileScreen(),
@@ -52,82 +53,6 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.support_agent_rounded), label: 'الدعم الفني'),
           BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'حسابي'),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDriverContractsScreen() {
-    final tripProvider = Provider.of<TripProvider>(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('عقود التوصيل والجداول'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => tripProvider.fetchMyContracts(),
-        child: tripProvider.myContracts.isEmpty
-            ? const Center(child: Text('لا توجد عقود نشطة حالياً'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: tripProvider.myContracts.length,
-                itemBuilder: (context, index) {
-                  final contract = tripProvider.myContracts[index];
-                  final client = contract['client'] ?? {};
-                  final trip = contract['tripRequest'] ?? {};
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.escrowLight,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  contract['contractStatus'] == 'COMPLETED' ? 'مكتمل ✅' : 'سارٍ ومؤمن 🛡️',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.escrow),
-                                ),
-                              ),
-                              Text(
-                                '${contract['driverEarnings'] ?? contract['baseAmount']} ر.س',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.success, fontSize: 16),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text('الراكب: ${client['fullName'] ?? 'عميل ترحيل'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text('من: ${trip['pickupAddress'] ?? ''}'),
-                          Text('إلى: ${trip['dropoffAddress'] ?? ''}'),
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ChatRoomScreen(
-                                    contractId: contract['id'],
-                                    receiverName: client['fullName'] ?? 'الراكب',
-                                    receiverId: contract['clientId'] ?? '',
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.chat_rounded, size: 16),
-                            label: const Text('محادثة الراكب (نص/صوت/موقع)'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
       ),
     );
   }
