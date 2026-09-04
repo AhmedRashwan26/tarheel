@@ -32,7 +32,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildClientHomeScreen(),
-      const PostTripScreen(),
+      PostTripScreen(onTripCreated: () => setState(() => _currentIndex = 2)),
       _buildMyTripsListScreen(),
       const SupportHubScreen(),
       const ProfileScreen(),

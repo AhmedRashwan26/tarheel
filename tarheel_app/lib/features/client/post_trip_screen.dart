@@ -5,7 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/trip_provider.dart';
 
 class PostTripScreen extends StatefulWidget {
-  const PostTripScreen({super.key});
+  final VoidCallback? onTripCreated;
+  const PostTripScreen({super.key, this.onTripCreated});
 
   @override
   State<PostTripScreen> createState() => _PostTripScreenState();
@@ -74,11 +75,15 @@ class _PostTripScreenState extends State<PostTripScreen> {
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🎉 تم نشر طلب مشوارك بنجاح! يمكن للسائقين الآن تقديم العروض.'),
+          content: Text('🎉 تم نشر طلب مشوارك بنجاح! يمكنك الآن استعراض العروض المقدمة.'),
           backgroundColor: AppColors.success,
         ),
       );
-      Navigator.of(context).pop();
+      if (widget.onTripCreated != null) {
+        widget.onTripCreated!();
+      } else if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
