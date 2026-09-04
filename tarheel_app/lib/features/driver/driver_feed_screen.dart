@@ -162,7 +162,11 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('سوق طلبات المشاوير المفتوحة'),
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: 36,
+          fit: BoxFit.contain,
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: () => tripProvider.fetchOpenTripsFeed(),

@@ -359,6 +359,17 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 20),
+            // Brand Footer
+            Center(
+              child: Column(
+                children: [
+                  Image.asset('assets/images/logo.png', height: 44, fit: BoxFit.contain),
+                  const SizedBox(height: 6),
+                  const Text('تـرحـيـل | الإصدار 1.0.0', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                ],
+              ),
+            ),
             const SizedBox(height: 30),
           ],
         ),

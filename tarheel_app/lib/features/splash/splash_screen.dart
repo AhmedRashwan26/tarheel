@@ -86,64 +86,35 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: 170,
+                  height: 170,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 25,
+                        offset: const Offset(0, 12),
                       ),
                     ],
                   ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Circular graphic indicator
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.accent, width: 3),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.directions_car_filled_rounded,
-                        size: 64,
-                        color: AppColors.accent,
-                      ),
-                      Positioned(
-                        right: 24,
-                        top: 24,
-                        child: Icon(
-                          Icons.arrow_upward_rounded,
-                          size: 32,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                    ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             FadeTransition(
               opacity: _fadeAnimation,
               child: Column(
                 children: [
-                  const Text(
-                    'تـرحـيـل',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 2,
-                    ),
-                  ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
