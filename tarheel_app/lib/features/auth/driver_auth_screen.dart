@@ -30,6 +30,9 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   final _nationalIdController = TextEditingController();
 
   // Document Uploads
+  String _personalPhotoUrl = '/uploads/demo_driver_face.jpg';
+  String? _personalPhotoFileName = 'صورة_الكابتن_الشخصية.jpg';
+
   String _idCardPhotoUrl = '/uploads/demo_absher_id.jpg';
   String? _idCardFileName = 'صورة_الهوية_من_أبشر.jpg';
 
@@ -117,6 +120,28 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     }
   }
 
+  Future<void> _pickPersonalPhotoFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'png', 'jpeg'],
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _personalPhotoFileName = result.files.first.name;
+          _personalPhotoUrl = '/uploads/${result.files.first.name}';
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم إرفاق الصورة الشخصية للكابتن: $_personalPhotoFileName')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Personal photo picker error: $e');
+    }
+  }
+
   Future<void> _pickIdCardFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -186,6 +211,16 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   Future<void> _handleRegisterDriver() async {
     if (!_registerFormKey.currentState!.validate()) return;
 
+    if (_personalPhotoFileName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('الصورة الشخصية للكابتن إلزامية ومطلوبة للتحقق من هوية السائق لدى الركاب'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     if (_idCardFileName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -222,6 +257,7 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       'phoneNumber': _phoneController.text.trim(),
       'fullName': _fullNameController.text.trim(),
       'nationalId': _nationalIdController.text.trim(),
+      'profilePictureUrl': _personalPhotoUrl,
       'idCardPhotoUrl': _idCardPhotoUrl,
       'driverLicenseUrl': _licenseUrl,
       'vehicleRegistrationUrl': _licenseUrl,
@@ -466,7 +502,34 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
           ),
           const SizedBox(height: 12),
 
-          // Absher ID Upload Button
+          // 1. Personal Face Photo Upload Button (Mandatory for drivers)
+          OutlinedButton.icon(
+            onPressed: _pickPersonalPhotoFile,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: _personalPhotoFileName != null ? AppColors.success : AppColors.accent,
+                width: 1.5,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            icon: Icon(
+              _personalPhotoFileName != null ? Icons.check_circle_rounded : Icons.face_rounded,
+              color: _personalPhotoFileName != null ? AppColors.success : AppColors.accent,
+            ),
+            label: Text(
+              _personalPhotoFileName != null
+                  ? 'تم إرفاق: $_personalPhotoFileName'
+                  : 'رفع الصورة الشخصية للكابتن (إجباري ومطلوب للتحقق)',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: _personalPhotoFileName != null ? AppColors.success : AppColors.accent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // 2. Absher ID Upload Button
           OutlinedButton.icon(
             onPressed: _pickIdCardFile,
             style: OutlinedButton.styleFrom(

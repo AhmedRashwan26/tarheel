@@ -259,6 +259,24 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateProfileAvatar(String avatarUrl) async {
+    if (_user != null) {
+      _user!['avatarUrl'] = avatarUrl;
+      _user!['profilePictureUrl'] = avatarUrl;
+      if (_user!['driverProfile'] != null) {
+        _user!['driverProfile']['profilePictureUrl'] = avatarUrl;
+      }
+      await StorageService.saveUserProfile(_user!);
+      notifyListeners();
+    }
+    try {
+      await _api.patch(ApiEndpoints.userProfile, data: {'avatarUrl': avatarUrl});
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   Future<void> logout() async {
     await StorageService.clear();
     SocketService().disconnect();

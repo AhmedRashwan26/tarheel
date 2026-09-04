@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../support/support_hub_screen.dart';
@@ -8,6 +9,31 @@ import '../auth/role_selection_screen.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  Future<void> _pickAndUploadPhoto(BuildContext context, bool isDriver) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'png', 'jpeg'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final fileName = result.files.first.name;
+        final photoUrl = '/uploads/$fileName';
+        if (context.mounted) {
+          await context.read<AuthProvider>().updateProfileAvatar(photoUrl);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🎉 تم تحديث الصورة الشخصية بنجاح: $fileName'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Avatar picker error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -15,6 +41,8 @@ class ProfileScreen extends StatelessWidget {
     final isDriver = auth.userRole == 'DRIVER';
     final driverProfile = user?['driverProfile'];
     final vehicle = driverProfile?['vehicle'];
+    final avatarUrl = user?['avatarUrl'] ?? user?['profilePictureUrl'] ?? driverProfile?['profilePictureUrl'];
+    final hasAvatar = avatarUrl != null && avatarUrl.toString().trim().isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -47,36 +75,90 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 44,
-                        backgroundColor: AppColors.surface,
-                        child: Text(
-                          (user?['fullName'] ?? 'U')[0],
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                  // Interactive Avatar with Camera Upload Badge
+                  GestureDetector(
+                    onTap: () => _pickAndUploadPhoto(context, isDriver),
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isDriver && !hasAvatar ? Colors.amberAccent : Colors.white,
+                              width: 3.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 46,
+                            backgroundColor: AppColors.surface,
+                            child: hasAvatar
+                                ? ClipOval(
+                                    child: Image.asset(
+                                      'assets/images/logo.png',
+                                      width: 92,
+                                      height: 92,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 48, color: AppColors.primary),
+                                    ),
+                                  )
+                                : Text(
+                                    (user?['fullName'] ?? 'U')[0],
+                                    style: const TextStyle(
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                           ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.accent,
-                          shape: BoxShape.circle,
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: isDriver ? AppColors.accent : AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
-                        child: Icon(
-                          isDriver ? Icons.drive_eta : Icons.person,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
+
+                  const SizedBox(height: 8),
+
+                  // Avatar Action Label
+                  TextButton.icon(
+                    onPressed: () => _pickAndUploadPhoto(context, isDriver),
+                    icon: Icon(
+                      Icons.photo_camera_rounded,
+                      size: 15,
+                      color: isDriver && !hasAvatar ? Colors.amberAccent : Colors.white70,
+                    ),
+                    label: Text(
+                      isDriver
+                          ? (hasAvatar ? 'تعديل الصورة الشخصية' : 'رفع الصورة الشخصية (إجباري للسائق) ⚠️')
+                          : (hasAvatar ? 'تعديل الصورة الشخصية' : 'إضافة صورة شخصية (اختياري للراكب)'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDriver && !hasAvatar ? Colors.amberAccent : Colors.white70,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
                   Text(
                     user?['fullName'] ?? 'المستخدم',
                     style: const TextStyle(
@@ -100,9 +182,9 @@ class ProfileScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isDriver
                           ? (driverProfile?['isVerified'] == true
-                              ? AppColors.success.withOpacity(0.25)
-                              : AppColors.warning.withOpacity(0.25))
-                          : AppColors.secondary.withOpacity(0.25),
+                              ? AppColors.success.withValues(alpha: 0.25)
+                              : AppColors.warning.withValues(alpha: 0.25))
+                          : AppColors.secondary.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isDriver
@@ -138,6 +220,52 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Mandatory Photo Alert Banner for Drivers without avatar
+            if (isDriver && !hasAvatar) ...[
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.amber.shade300, width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'الصورة الشخصية للكابتن إلزامية ⚠️',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'يلزم رفع صورة شخصية واضحة للتحقق من هويتك لدى الركاب وتمكين قبول العروض.',
+                              style: TextStyle(fontSize: 11, color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        onPressed: () => _pickAndUploadPhoto(context, isDriver),
+                        child: const Text('رفع الآن', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 20),
 
