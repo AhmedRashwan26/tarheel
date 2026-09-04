@@ -87,46 +87,23 @@ class _SplashScreenState extends State<SplashScreen>
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 24,
                         offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Circular graphic indicator
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.accent, width: 3),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.directions_car_filled_rounded,
-                        size: 64,
-                        color: AppColors.accent,
-                      ),
-                      Positioned(
-                        right: 24,
-                        top: 24,
-                        child: Icon(
-                          Icons.arrow_upward_rounded,
-                          size: 32,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                    ],
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 140,
+                    width: 140,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),

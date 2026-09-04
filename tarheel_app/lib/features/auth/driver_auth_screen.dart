@@ -283,6 +283,27 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Logo Header
+              Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Center(
+                child: Text(
+                  'حياك الله كابتن ترحيل',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+
               // Tab Selector
               Container(
                 decoration: BoxDecoration(

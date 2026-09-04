@@ -63,7 +63,21 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تـرحـيـل'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              height: 38,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'تـرحـيـل',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),

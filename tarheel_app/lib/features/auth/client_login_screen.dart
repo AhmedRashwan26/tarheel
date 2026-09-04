@@ -169,6 +169,27 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Logo Header
+              Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 110,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Center(
+                child: Text(
+                  'حياك الله في ترحيل',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
               // Tab Selector
               Container(
                 decoration: BoxDecoration(
