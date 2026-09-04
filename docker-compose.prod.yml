@@ -63,6 +63,11 @@ services:
       REDIS_PORT: 6379
       UPLOAD_DIR: "./uploads"
       WHATSAPP_GATEWAY_URL: "http://whatsapp:3001"
+      EMAIL_FROM: "${EMAIL_FROM:-منصة ترحيل <tarheel.platform@gmail.com>}"
+      SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      SMTP_PORT: "${SMTP_PORT:-465}"
+      SMTP_USER: "${SMTP_USER:-tarheel.platform@gmail.com}"
+      SMTP_PASS: "${SMTP_PASS:-wziqbufvxcxpfttg}"
     depends_on:
       postgres:
         condition: service_healthy
