@@ -63,11 +63,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          'assets/images/logo.png',
-          height: 36,
-          fit: BoxFit.contain,
-        ),
+        title: const Text('تـرحـيـل'),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
@@ -109,7 +105,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'حياك الله، ${auth.user?['fullName'] ?? 'عزيزنا الراكب'} 👋',
+                              'أهلاً بك، ${auth.user?['fullName'] ?? 'عزيزنا الراكب'} 👋',
                               style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
@@ -246,14 +242,14 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                 ),
               ),
               Text(
-                '${contract['totalPaidByClient'] ?? contract['totalAmount'] ?? contract['baseAmount'] ?? '138.00'} ر.س',
+                '${contract['totalPaidByClient'] ?? contract['baseAmount']} ر.س',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.accent),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            'الكابتن: ${driverUser['fullName'] ?? 'سائق ترحيل'}${vehicle['make'] != null || vehicle['brand'] != null ? ' (${vehicle['make'] ?? vehicle['brand']} ${vehicle['model'] ?? ''})' : ''}',
+            'الكابتن: ${driverUser['fullName'] ?? 'سائق ترحيل'} (${vehicle['brand'] ?? 'سيارة'} ${vehicle['model'] ?? ''})',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 4),
@@ -359,6 +355,10 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                   return _buildTripRequestItem(tripProvider.myTrips[index]);
                 },
               ),
+      ),
+    );
+  }
+}
       ),
     );
   }

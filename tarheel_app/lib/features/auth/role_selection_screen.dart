@@ -23,12 +23,27 @@ class RoleSelectionScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      height: 100,
-                      fit: BoxFit.contain,
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.25),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.directions_car_filled_rounded,
+                        color: AppColors.accent,
+                        size: 44,
+                      ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 18),
                     const Text(
                       'حياك الله في ترحيل',
                       style: TextStyle(
@@ -59,10 +74,12 @@ class RoleSelectionScreen extends StatelessWidget {
                 iconColor: AppColors.primary,
                 iconBgColor: AppColors.primaryLight.withValues(alpha: 0.12),
                 onTap: () {
-                  final auth = Provider.of<AuthProvider>(context, listen: false);
+                  final auth =
+                      Provider.of<AuthProvider>(context, listen: false);
                   auth.setRole('CLIENT');
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ClientLoginScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const ClientLoginScreen()),
                   );
                 },
               ),
@@ -77,7 +94,8 @@ class RoleSelectionScreen extends StatelessWidget {
                 iconColor: AppColors.accent,
                 iconBgColor: AppColors.accent.withValues(alpha: 0.12),
                 onTap: () {
-                  final auth = Provider.of<AuthProvider>(context, listen: false);
+                  final auth =
+                      Provider.of<AuthProvider>(context, listen: false);
                   auth.setRole('DRIVER');
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const DriverAuthScreen()),

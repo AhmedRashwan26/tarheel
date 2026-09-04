@@ -21,7 +21,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
 
   void _showSubmitBidDialog(Map<String, dynamic> trip) {
     final priceController = TextEditingController(text: '800');
-    final notesController = TextEditingController(text: 'سيارة حديثة ومكيفة، ملتزم بالمواعيد المحددة.');
+    final notesController = TextEditingController(
+        text: 'سيارة حديثة ومكيفة، ملتزم بالمواعيد المحددة.');
     double enteredPrice = 800.0;
     double platformCommission = 80.0; // 10%
     double netEarnings = 720.0; // 90%
@@ -50,7 +51,10 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                   children: [
                     const Text(
                       'تقديم عرض سعر لمشوار',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
@@ -62,7 +66,10 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
 
                 Text(
                   'المسار: ${trip['pickupAddress'] ?? ''} ➔ ${trip['dropoffAddress'] ?? ''}',
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
 
@@ -71,7 +78,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'سعر العرض الإجمالي (ريال سعودي)',
-                    prefixIcon: Icon(Icons.payments_rounded, color: AppColors.accent),
+                    prefixIcon:
+                        Icon(Icons.payments_rounded, color: AppColors.accent),
                   ),
                   onChanged: (val) {
                     final p = double.tryParse(val) ?? 0.0;
@@ -97,18 +105,30 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('عمولة منصة ترحيل (10%):', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          Text('-$platformCommission ر.س', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.error)),
+                          const Text('عمولة منصة ترحيل (10%):',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary)),
+                          Text('-$platformCommission ر.س',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.error)),
                         ],
                       ),
                       const Divider(height: 16, color: AppColors.cardBorder),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('صافي أرباحك المحولة لحسابك (90%):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          const Text('صافي أرباحك المحولة لحسابك (90%):',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.bold)),
                           Text(
                             '$netEarnings ر.س',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.success),
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.success),
                           ),
                         ],
                       ),
@@ -122,7 +142,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                   maxLines: 2,
                   decoration: const InputDecoration(
                     labelText: 'ملاحظات العرض للعميل ومواصفات سيارتك',
-                    prefixIcon: Icon(Icons.note_alt_rounded, color: AppColors.primary),
+                    prefixIcon:
+                        Icon(Icons.note_alt_rounded, color: AppColors.primary),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -130,7 +151,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     Navigator.of(ctx).pop();
-                    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+                    final tripProvider =
+                        Provider.of<TripProvider>(context, listen: false);
                     final success = await tripProvider.submitDriverOffer(
                       tripRequestId: trip['id'] ?? '',
                       offerPrice: enteredPrice,
@@ -162,18 +184,16 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          'assets/images/logo.png',
-          height: 36,
-          fit: BoxFit.contain,
-        ),
+        title: const Text('سوق طلبات المشاوير المفتوحة'),
       ),
       body: RefreshIndicator(
         onRefresh: () => tripProvider.fetchOpenTripsFeed(),
         child: tripProvider.isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.accent))
             : tripProvider.openTripsFeed.isEmpty
-                ? const Center(child: Text('لا توجد طلبات مشاوير جديدة متاحة حالياً'))
+                ? const Center(
+                    child: Text('لا توجد طلبات مشاوير جديدة متاحة حالياً'))
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: tripProvider.openTripsFeed.length,
@@ -187,9 +207,11 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
   }
 
   Widget _buildFeedTripCard(Map<String, dynamic> trip) {
-    final isRoundTrip = trip['isRoundTrip'] == true || trip['hasReturn'] == true;
+    final isRoundTrip =
+        trip['isRoundTrip'] == true || trip['hasReturn'] == true;
     final frequency = trip['frequency'] ?? 'ONCE';
-    final departureTime = trip['departureTime'] ?? trip['preferredTime'] ?? '08:00 AM';
+    final departureTime =
+        trip['departureTime'] ?? trip['preferredTime'] ?? '08:00 AM';
     final returnTime = trip['returnTime'] ?? '04:00 PM';
     final seatsCount = trip['seatsCount'] ?? trip['passengersCount'] ?? 1;
 
@@ -222,30 +244,40 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
             children: [
               // Frequency Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   frequencyLabel,
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary),
                 ),
               ),
 
               // Trip Type (ذهاب فقط / ذهاب وعودة)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isRoundTrip ? AppColors.accent.withValues(alpha: 0.12) : Colors.blue.shade50,
+                  color: isRoundTrip
+                      ? AppColors.accent.withValues(alpha: 0.12)
+                      : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      isRoundTrip ? Icons.sync_alt_rounded : Icons.arrow_forward_rounded,
+                      isRoundTrip
+                          ? Icons.sync_alt_rounded
+                          : Icons.arrow_forward_rounded,
                       size: 13,
-                      color: isRoundTrip ? AppColors.accent : Colors.blue.shade800,
+                      color:
+                          isRoundTrip ? AppColors.accent : Colors.blue.shade800,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -253,7 +285,9 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: isRoundTrip ? AppColors.accent : Colors.blue.shade800,
+                        color: isRoundTrip
+                            ? AppColors.accent
+                            : Colors.blue.shade800,
                       ),
                     ),
                   ],
@@ -270,11 +304,15 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.people_alt_rounded, size: 14, color: AppColors.primary),
+                    const Icon(Icons.people_alt_rounded,
+                        size: 14, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
                       '$seatsCount ركاب',
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary),
                     ),
                   ],
                 ),
@@ -296,16 +334,22 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.radio_button_checked, color: AppColors.primary, size: 18),
+                    const Icon(Icons.radio_button_checked,
+                        color: AppColors.primary, size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('نقطة الانطلاق (من):', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          const Text('نقطة الانطلاق (من):',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textMuted)),
                           Text(
                             trip['pickupAddress'] ?? 'موقع الانطلاق',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -319,7 +363,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       SizedBox(width: 8),
                       SizedBox(
                         height: 16,
-                        child: VerticalDivider(color: AppColors.cardBorder, thickness: 1.5),
+                        child: VerticalDivider(
+                            color: AppColors.cardBorder, thickness: 1.5),
                       ),
                     ],
                   ),
@@ -327,16 +372,22 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on_rounded, color: AppColors.accent, size: 18),
+                    const Icon(Icons.location_on_rounded,
+                        color: AppColors.accent, size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('نقطة الوصول (إلى):', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          const Text('نقطة الوصول (إلى):',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textMuted)),
                           Text(
                             trip['dropoffAddress'] ?? 'موقع الوصول',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -361,22 +412,30 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.secondary),
+                    const Icon(Icons.access_time_filled_rounded,
+                        size: 16, color: AppColors.secondary),
                     const SizedBox(width: 6),
                     Text(
                       'وقت الذهاب: $departureTime',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary),
                     ),
                   ],
                 ),
                 if (isRoundTrip)
                   Row(
                     children: [
-                      const Icon(Icons.replay_rounded, size: 16, color: AppColors.accent),
+                      const Icon(Icons.replay_rounded,
+                          size: 16, color: AppColors.accent),
                       const SizedBox(width: 4),
                       Text(
                         'العودة: $returnTime',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accent),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accent),
                       ),
                     ],
                   ),
@@ -393,7 +452,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
               backgroundColor: AppColors.accent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.local_offer_rounded, size: 18),
             label: const Text(
