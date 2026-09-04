@@ -454,6 +454,40 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
             ),
           ),
 
+          // Client Notes (ملاحظات العميل للسائق)
+          if (trip['notes'] != null && trip['notes'].toString().trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF9E6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFD566)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.speaker_notes_rounded, size: 16, color: Color(0xFFD48806)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF59441B), fontFamily: 'Cairo', height: 1.4),
+                        children: [
+                          const TextSpan(
+                            text: 'ملاحظة العميل للكابتن: ',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF874D00)),
+                          ),
+                          TextSpan(text: '${trip['notes']}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: 14),
 
           // Bid Submission Button
