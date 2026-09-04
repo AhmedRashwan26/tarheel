@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterClientDto } from './dto/register-client.dto';
 import { LoginPhoneDto, VerifyOtpDto, OtpDeliveryChannel } from './dto/login-phone.dto';
-import { Role } from '@prisma/client';
+import { Role, VerificationStatus } from '@prisma/client';
 import { OtpSenderService } from '../notifications/otp-sender.service';
 
 @Injectable()
@@ -146,14 +146,38 @@ export class AuthService {
       include: { driverProfile: { include: { vehicle: true } } },
     });
 
-    // If account does not exist yet, auto-register as a CLIENT seamlessly
+    const targetRole = dto.role === 'DRIVER' ? Role.DRIVER : (dto.role === 'CLIENT' ? Role.CLIENT : null);
+
+    // If account does not exist yet, auto-register with targetRole seamlessly
     if (!user) {
+      const assignedRole = targetRole || Role.CLIENT;
       user = await this.prisma.user.create({
         data: {
           email: isEmail ? normalizedIdentifier : undefined,
           phoneNumber: !isEmail ? normalizedIdentifier : undefined,
-          fullName: isEmail ? normalizedIdentifier.split('@')[0] : 'عميل ترحيل',
-          role: Role.CLIENT,
+          fullName: isEmail ? normalizedIdentifier.split('@')[0] : (assignedRole === Role.DRIVER ? 'كابتن ترحيل' : 'عميل ترحيل'),
+          role: assignedRole,
+          driverProfile: assignedRole === Role.DRIVER ? {
+            create: {
+              nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
+              verificationStatus: VerificationStatus.APPROVED,
+            }
+          } : undefined,
+        },
+        include: { driverProfile: { include: { vehicle: true } } },
+      });
+    } else if (targetRole === Role.DRIVER && user.role !== Role.DRIVER) {
+      // If user logs in through the Driver portal, elevate to DRIVER role
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          role: Role.DRIVER,
+          driverProfile: !user.driverProfile ? {
+            create: {
+              nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
+              verificationStatus: VerificationStatus.APPROVED,
+            }
+          } : undefined,
         },
         include: { driverProfile: { include: { vehicle: true } } },
       });

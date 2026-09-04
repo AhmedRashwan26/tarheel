@@ -25,6 +25,16 @@ export class LoginPhoneDto {
   @IsOptional()
   @IsEnum(OtpDeliveryChannel)
   channel?: OtpDeliveryChannel;
+
+  @ApiProperty({
+    enum: ['CLIENT', 'DRIVER', 'ADMIN'],
+    example: 'DRIVER',
+    required: false,
+    description: 'الدور المطلوب للمستخدم: CLIENT (راكب) أو DRIVER (سائق)',
+  })
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
 
 export class VerifyOtpDto {
@@ -36,8 +46,18 @@ export class VerifyOtpDto {
   @IsString()
   identifier: string;
 
-  @ApiProperty({ example: '123456', description: 'رمز التحقق OTP (الرمز التجريبي: 123456)' })
+  @ApiProperty({ example: '123456', description: 'رمز التحقق OTP' })
   @IsNotEmpty({ message: 'رمز التحقق مطلوب' })
   @IsString()
   code: string;
+
+  @ApiProperty({
+    enum: ['CLIENT', 'DRIVER', 'ADMIN'],
+    example: 'DRIVER',
+    required: false,
+    description: 'الدور المستهدف للمستخدم: CLIENT (راكب) أو DRIVER (سائق)',
+  })
+  @IsOptional()
+  @IsString()
+  role?: string;
 }

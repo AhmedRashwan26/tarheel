@@ -30,8 +30,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> _handleVerify() async {
-    final code = _otpController.text.trim();
-    if (code.isEmpty || code.length < 6) {
+    final rawCode = _otpController.text.trim();
+    final cleanCode = rawCode
+        .replaceAll('٠', '0').replaceAll('١', '1').replaceAll('٢', '2')
+        .replaceAll('٣', '3').replaceAll('٤', '4').replaceAll('٥', '5')
+        .replaceAll('٦', '6').replaceAll('٧', '7').replaceAll('٨', '8')
+        .replaceAll('٩', '9')
+        .replaceAll(RegExp(r'[^0-9]'), '')
+        .trim();
+
+    if (cleanCode.isEmpty || cleanCode.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يرجى إدخال رمز التحقق المكون من 6 أرقام')),
       );
@@ -40,7 +48,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final success = await auth.verifyOtp(widget.identifier, code);
+    final success = await auth.verifyOtp(widget.identifier, cleanCode, role: auth.userRole);
     setState(() => _isLoading = false);
 
     if (success && mounted) {

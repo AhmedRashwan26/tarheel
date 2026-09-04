@@ -84,13 +84,14 @@ class AuthProvider extends ChangeNotifier {
     return clean.isNotEmpty ? clean : trimmed;
   }
 
-  Future<bool> sendOtp(String identifier, {String channel = 'WHATSAPP'}) async {
+  Future<bool> sendOtp(String identifier, {String channel = 'WHATSAPP', String? role}) async {
     _errorMessage = null;
+    final targetRole = role ?? _userRole;
     final normalized = normalizeIdentifier(identifier);
     try {
       final response = await _api.post(
         ApiEndpoints.sendOtp,
-        data: {'identifier': normalized, 'channel': channel},
+        data: {'identifier': normalized, 'channel': channel, 'role': targetRole},
       );
       return response.data['success'] == true;
     } catch (e) {
@@ -108,22 +109,23 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> verifyOtp(String identifier, String code) async {
+  Future<bool> verifyOtp(String identifier, String code, {String? role}) async {
     _errorMessage = null;
     _status = AuthStatus.loading;
     notifyListeners();
 
+    final targetRole = role ?? _userRole;
     final normalized = normalizeIdentifier(identifier);
     try {
       final response = await _api.post(
         ApiEndpoints.verifyOtp,
-        data: {'identifier': normalized, 'code': code},
+        data: {'identifier': normalized, 'code': code, 'role': targetRole},
       );
 
       final data = response.data['data'];
       _token = data['accessToken'];
       _user = data['user'];
-      _userRole = _user?['role'] ?? _userRole;
+      _userRole = _user?['role'] ?? targetRole;
 
       if (_token != null) {
         await StorageService.saveToken(_token!);
