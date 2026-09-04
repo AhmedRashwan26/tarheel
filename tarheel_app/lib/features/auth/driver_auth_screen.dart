@@ -29,6 +29,13 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   final _phoneController = TextEditingController();
   final _nationalIdController = TextEditingController();
 
+  // Document Uploads
+  String _idCardPhotoUrl = '/uploads/demo_absher_id.jpg';
+  String? _idCardFileName = 'صورة_الهوية_من_أبشر.jpg';
+
+  String _licenseUrl = '/uploads/demo_license.jpg';
+  String? _licenseFileName = 'صورة_رخصة_القيادة_والسير.jpg';
+
   // Vehicle
   final _brandController = TextEditingController(text: 'تويوتا');
   final _modelController = TextEditingController(text: 'كامري');
@@ -37,15 +44,13 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   int _capacity = 4;
   bool _isAirConditioned = true;
 
-  // Photos & Docs
+  // 4 Angle Photos
   final String _photoFrontUrl = '/uploads/demo_car_front.jpg';
   final String _photoBackUrl = '/uploads/demo_car_back.jpg';
   final String _photoRightUrl = '/uploads/demo_car_right.jpg';
   final String _photoLeftUrl = '/uploads/demo_car_left.jpg';
-  final String _vehicleRegUrl = '/uploads/demo_reg.jpg';
-  final String _licenseUrl = '/uploads/demo_lic.jpg';
 
-  // Bank
+  // Bank Details
   final _bankNameController = TextEditingController(text: 'مصرف الراجحي');
   final _ibanController = TextEditingController(text: 'SA0380000000608010167519');
   final _accountHolderController = TextEditingController();
@@ -112,6 +117,50 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     }
   }
 
+  Future<void> _pickIdCardFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _idCardFileName = result.files.first.name;
+          _idCardPhotoUrl = '/uploads/${result.files.first.name}';
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم إرفاق صورة الهوية من أبشر: $_idCardFileName')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('ID file picker error: $e');
+    }
+  }
+
+  Future<void> _pickLicenseFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _licenseFileName = result.files.first.name;
+          _licenseUrl = '/uploads/${result.files.first.name}';
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم إرفاق صورة رخصة السير: $_licenseFileName')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('License file picker error: $e');
+    }
+  }
+
   Future<void> _pickBankCertificatePdf() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -137,6 +186,26 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   Future<void> _handleRegisterDriver() async {
     if (!_registerFormKey.currentState!.validate()) return;
 
+    if (_idCardFileName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى إرفاق صورة الهوية الوطنية من أبشر'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_licenseFileName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى إرفاق صورة رخصة السير والقيادة'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -153,9 +222,9 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       'phoneNumber': _phoneController.text.trim(),
       'fullName': _fullNameController.text.trim(),
       'nationalId': _nationalIdController.text.trim(),
-      'idCardPhotoUrl': '/uploads/demo_id.jpg',
+      'idCardPhotoUrl': _idCardPhotoUrl,
       'driverLicenseUrl': _licenseUrl,
-      'vehicleRegistrationUrl': _vehicleRegUrl,
+      'vehicleRegistrationUrl': _licenseUrl,
       'vehicleBrand': _brandController.text.trim(),
       'vehicleModel': _modelController.text.trim(),
       'vehicleYear': int.tryParse(_yearController.text) ?? 2024,
@@ -350,7 +419,7 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader('1. البيانات الشخصية والتحقق', Icons.badge_rounded),
+          _buildSectionHeader('1. البيانات الشخصية وصورة الهوية من أبشر', Icons.badge_rounded),
           const SizedBox(height: 12),
           TextFormField(
             controller: _fullNameController,
@@ -362,7 +431,7 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
             controller: _phoneController,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
-              labelText: 'رقم الجوال',
+              labelText: 'رقم الجوال (إلزامي للسائق)',
               hintText: '+9665xxxxxxxx',
             ),
             validator: (v) => v == null || v.isEmpty ? 'رقم الجوال مطلوب للسائق' : null,
@@ -373,6 +442,33 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: 'رقم الهوية الوطنية / الإقامة (10 أرقام)'),
             validator: (v) => v == null || v.length < 10 ? 'رقم الهوية يجب أن يكون 10 أرقام' : null,
+          ),
+          const SizedBox(height: 12),
+
+          // Absher ID Upload Button
+          OutlinedButton.icon(
+            onPressed: _pickIdCardFile,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: _idCardFileName != null ? AppColors.success : AppColors.primary,
+                width: 1.5,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            icon: Icon(
+              _idCardFileName != null ? Icons.check_circle_rounded : Icons.camera_front_rounded,
+              color: _idCardFileName != null ? AppColors.success : AppColors.primary,
+            ),
+            label: Text(
+              _idCardFileName != null
+                  ? 'تم إرفاق: $_idCardFileName'
+                  : 'رفع صورة الهوية الوطنية من تطبيق أبشر (مطلوب)',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: _idCardFileName != null ? AppColors.success : AppColors.primary,
+              ),
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -454,10 +550,38 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
           ),
 
           const SizedBox(height: 16),
-          _buildSectionHeader('3. صور السيارة الأربعة ورخصة السير', Icons.photo_library_rounded),
+          _buildSectionHeader('3. صورة رخصة السير وصور السيارة الأربعة', Icons.photo_library_rounded),
           const SizedBox(height: 10),
+
+          // License Upload Button
+          OutlinedButton.icon(
+            onPressed: _pickLicenseFile,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: _licenseFileName != null ? AppColors.success : AppColors.accent,
+                width: 1.5,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            icon: Icon(
+              _licenseFileName != null ? Icons.check_circle_rounded : Icons.drive_eta_rounded,
+              color: _licenseFileName != null ? AppColors.success : AppColors.accent,
+            ),
+            label: Text(
+              _licenseFileName != null
+                  ? 'تم إرفاق: $_licenseFileName'
+                  : 'رفع صورة رخصة السير والقيادة (مطلوب)',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: _licenseFileName != null ? AppColors.success : AppColors.accent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
           const Text(
-            'يجب إرفاق صور واضحة لسيارتك من الجهات الأربع لاعتماد الحساب:',
+            'صور السيارة من الجهات الأربع لاعتماد الحساب:',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 10),
