@@ -18,7 +18,7 @@ class _PostTripScreenState extends State<PostTripScreen> {
   final _dropoffAddressController = TextEditingController(text: 'جامعة الملك سعود، الدرعية');
   final _preferredTimeController = TextEditingController(text: '07:30');
   final _returnTimeController = TextEditingController(text: '15:30');
-  final _notesController = TextEditingController(text: 'مشوار يومي، يفضل سيارة مكيفة وسائق ملتزم بالمواعيد.');
+  final _notesController = TextEditingController();
 
   DateTime _startDate = DateTime.now().add(const Duration(days: 1));
   bool _hasReturn = true;
@@ -245,6 +245,7 @@ class _PostTripScreenState extends State<PostTripScreen> {
                   maxLines: 2,
                   decoration: const InputDecoration(
                     labelText: 'ملاحظات إضافية للسائقين',
+                    hintText: 'مثال: سآخذ صديقي معي في طريقي.. أو سأتوقف قليلاً عند البقالة...',
                     prefixIcon: Icon(Icons.notes_rounded, color: AppColors.primary),
                   ),
                 ),
