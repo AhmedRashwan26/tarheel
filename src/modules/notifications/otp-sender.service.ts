@@ -13,15 +13,15 @@ export class OtpSenderService {
   }
 
   private initMailTransporter() {
-    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const port = Number(process.env.SMTP_PORT) || 465;
-    const user = process.env.SMTP_USER || 'tarheel.platform@gmail.com';
-    const pass = process.env.SMTP_PASS || 'wziqbufvxcxpfttg';
+    const host = 'smtp.gmail.com';
+    const port = 465;
+    const user = 'tarheel.platform@gmail.com';
+    const pass = 'wziqbufvxcxpfttg';
 
     this.mailTransporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
+      secure: true,
       auth: { user, pass },
       tls: {
         rejectUnauthorized: false,
@@ -131,8 +131,8 @@ export class OtpSenderService {
    * إرسال رمز التحقق عبر البريد الإلكتروني (Email OTP)
    */
   async sendEmailOtp(toEmail: string, otpCode: string, userName?: string): Promise<boolean> {
-    const fromEmail = process.env.EMAIL_FROM || 'no-reply@tarheel.app';
-    const appName = 'منصة ترحيل (Tarheel)';
+    const fromEmail = 'tarheel.platform@gmail.com';
+    const appName = 'منصة ترحيل';
 
     this.logger.log(`[EMAIL OTP] Sending code [${otpCode}] to [${toEmail}]`);
 
