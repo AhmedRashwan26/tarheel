@@ -115,7 +115,14 @@ export class AuthService {
     const normalizedIdentifier = this.normalizeIdentifier(dto.identifier);
     const storedOtp = AuthService.otpStore.get(normalizedIdentifier) || AuthService.otpStore.get(dto.identifier.trim().toLowerCase());
 
-    const isValidStored = storedOtp && storedOtp.code === dto.code.trim() && Date.now() <= storedOtp.expiresAt;
+    // Normalize Arabic/Persian digits to standard ASCII digits
+    const cleanCode = dto.code
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+      .replace(/[^0-9]/g, '')
+      .trim();
+
+    const isValidStored = storedOtp && storedOtp.code === cleanCode && Date.now() <= storedOtp.expiresAt;
 
     if (!isValidStored) {
       throw new BadRequestException('رمز التحقق غير صحيح أو منتهي الصلاحية');
@@ -126,7 +133,7 @@ export class AuthService {
     AuthService.otpStore.delete(dto.identifier.trim().toLowerCase());
 
     const isEmail = dto.identifier.includes('@');
-    const user = await this.prisma.user.findFirst({
+    let user = await this.prisma.user.findFirst({
       where: isEmail
         ? { email: normalizedIdentifier }
         : {
@@ -139,8 +146,17 @@ export class AuthService {
       include: { driverProfile: { include: { vehicle: true } } },
     });
 
+    // If account does not exist yet, auto-register as a CLIENT seamlessly
     if (!user) {
-      throw new BadRequestException('الحساب غير مسجل. يرجى إنشاء حساب جديد أولاً.');
+      user = await this.prisma.user.create({
+        data: {
+          email: isEmail ? normalizedIdentifier : undefined,
+          phoneNumber: !isEmail ? normalizedIdentifier : undefined,
+          fullName: isEmail ? normalizedIdentifier.split('@')[0] : 'عميل ترحيل',
+          role: Role.CLIENT,
+        },
+        include: { driverProfile: { include: { vehicle: true } } },
+      });
     }
 
     if (user.isBlocked) {
