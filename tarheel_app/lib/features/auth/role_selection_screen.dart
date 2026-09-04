@@ -11,27 +11,28 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
-              // Header with logo branding
+              const Spacer(flex: 1),
+
+              // Logo & App Name
               Center(
                 child: Column(
                   children: [
                     Container(
-                      width: 70,
-                      height: 70,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 15,
+                            color: AppColors.primary.withValues(alpha: 0.25),
+                            blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
                         ],
@@ -39,14 +40,14 @@ class RoleSelectionScreen extends StatelessWidget {
                       child: const Icon(
                         Icons.directions_car_filled_rounded,
                         color: AppColors.accent,
-                        size: 38,
+                        size: 44,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 18),
                     const Text(
                       'مرحباً بك في ترحيل',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
                       ),
@@ -54,22 +55,24 @@ class RoleSelectionScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     const Text(
                       'اختر نوع الحساب للمتابعة',
-                      style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+
+              const SizedBox(height: 48),
 
               // Option 1: Client Card
-              _buildRoleCard(
+              _buildCleanRoleCard(
                 context,
                 title: 'أنا راكب / عميل',
-                subtitle: 'نشر مشاوير مجدولة (يومية، أسبوعية، شهرية)، استلام عروض الأسعار، ودفع آمن عبر ضمان ترحيل.',
                 icon: Icons.person_pin_circle_rounded,
-                badgeText: 'تسجيل بالجوال أو البريد',
-                badgeColor: AppColors.secondary,
-                accentColor: AppColors.primary,
+                iconColor: AppColors.primary,
+                iconBgColor: AppColors.primaryLight.withValues(alpha: 0.12),
                 onTap: () {
                   final auth = Provider.of<AuthProvider>(context, listen: false);
                   auth.setRole('CLIENT');
@@ -82,14 +85,12 @@ class RoleSelectionScreen extends StatelessWidget {
               const SizedBox(height: 18),
 
               // Option 2: Driver Card
-              _buildRoleCard(
+              _buildCleanRoleCard(
                 context,
                 title: 'أنا سائق / كابتن',
-                subtitle: 'تصفح طلبات المشاوير، تقديم عروض الأسعار، واستلام أرباحك الصافية (90%) مباشرة على حسابك البنكي.',
                 icon: Icons.local_taxi_rounded,
-                badgeText: 'عمولة 10% + تحويل بنكي',
-                badgeColor: AppColors.accent,
-                accentColor: AppColors.accent,
+                iconColor: AppColors.accent,
+                iconBgColor: AppColors.accent.withValues(alpha: 0.12),
                 onTap: () {
                   final auth = Provider.of<AuthProvider>(context, listen: false);
                   auth.setRole('DRIVER');
@@ -99,30 +100,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 },
               ),
 
-              const Spacer(),
-
-              // Anti-cash policy note
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.escrowLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.escrow.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.verified_user_rounded, color: AppColors.escrow, size: 22),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'جميع الرحلات محمية بضمان ترحيل المالي وتخضع لضريبة القيمة المضافة 15%.',
-                        style: TextStyle(fontSize: 11, color: AppColors.escrow, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
+              const Spacer(flex: 2),
             ],
           ),
         ),
@@ -130,84 +108,57 @@ class RoleSelectionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleCard(
+  Widget _buildCleanRoleCard(
     BuildContext context, {
     required String title,
-    required String subtitle,
     required IconData icon,
-    required String badgeText,
-    required Color badgeColor,
-    required Color accentColor,
+    required Color iconColor,
+    required Color iconBgColor,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.cardBorder, width: 1.5),
+          border: Border.all(color: AppColors.cardBorder, width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              width: 54,
+              height: 54,
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
+                color: iconBgColor,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: accentColor, size: 32),
+              child: Icon(icon, color: iconColor, size: 30),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 18),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: badgeColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          badgeText,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: badgeColor),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 18,
+              color: AppColors.textMuted,
             ),
           ],
         ),
