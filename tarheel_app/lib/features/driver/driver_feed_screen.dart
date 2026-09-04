@@ -20,11 +20,11 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
   }
 
   void _showSubmitBidDialog(Map<String, dynamic> trip) {
-    final priceController = TextEditingController(text: '1000');
+    final priceController = TextEditingController(text: '800');
     final notesController = TextEditingController(text: 'سيارة حديثة ومكيفة، ملتزم بالمواعيد المحددة.');
-    double enteredPrice = 1000.0;
-    double platformCommission = 100.0; // 10%
-    double netEarnings = 900.0; // 90%
+    double enteredPrice = 800.0;
+    double platformCommission = 80.0; // 10%
+    double netEarnings = 720.0; // 90%
 
     showModalBottomSheet(
       context: context,
@@ -58,11 +58,11 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
                 Text(
-                  'المسار: ${trip['pickupAddress']} ➔ ${trip['dropoffAddress']}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  'المسار: ${trip['pickupAddress'] ?? ''} ➔ ${trip['dropoffAddress'] ?? ''}',
+                  style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
 
@@ -70,7 +70,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                   controller: priceController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'سعر العرض الإجمالي المقترح (ريال سعودي)',
+                    labelText: 'سعر العرض الإجمالي (ريال سعودي)',
                     prefixIcon: Icon(Icons.payments_rounded, color: AppColors.accent),
                   ),
                   onChanged: (val) {
@@ -105,7 +105,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('صافي أرباحك المحولة لحسابك البنكي (90%):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          const Text('صافي أرباحك المحولة لحسابك (90%):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                           Text(
                             '$netEarnings ر.س',
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.success),
@@ -121,7 +121,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                   controller: notesController,
                   maxLines: 2,
                   decoration: const InputDecoration(
-                    labelText: 'ملاحظات العرض ومواصفات سيارتك',
+                    labelText: 'ملاحظات العرض للعميل ومواصفات سيارتك',
                     prefixIcon: Icon(Icons.note_alt_rounded, color: AppColors.primary),
                   ),
                 ),
@@ -132,7 +132,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                     Navigator.of(ctx).pop();
                     final tripProvider = Provider.of<TripProvider>(context, listen: false);
                     final success = await tripProvider.submitDriverOffer(
-                      tripRequestId: trip['id'],
+                      tripRequestId: trip['id'] ?? '',
                       offerPrice: enteredPrice,
                       driverNotes: notesController.text.trim(),
                     );
@@ -183,17 +183,28 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
   }
 
   Widget _buildFeedTripCard(Map<String, dynamic> trip) {
+    final isRoundTrip = trip['isRoundTrip'] == true || trip['hasReturn'] == true;
+    final frequency = trip['frequency'] ?? 'ONCE';
+    final departureTime = trip['departureTime'] ?? trip['preferredTime'] ?? '08:00 AM';
+    final returnTime = trip['returnTime'] ?? '04:00 PM';
+    final seatsCount = trip['seatsCount'] ?? trip['passengersCount'] ?? 1;
+
+    String frequencyLabel = '⚡ مشوار مرة واحدة';
+    if (frequency == 'DAILY') frequencyLabel = '🔄 تعاقد يومي';
+    if (frequency == 'WEEKLY') frequencyLabel = '📅 تعاقد أسبوعي';
+    if (frequency == 'MONTHLY') frequencyLabel = '🗓️ تعاقد شهري';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.cardBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -201,90 +212,190 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Badges Header: Frequency, Round-Trip vs One-Way, Seats Count
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Frequency Badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primaryLight.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  trip['frequency'] == 'MONTHLY'
-                      ? '🗓️ تعاقد شهري'
-                      : trip['frequency'] == 'WEEKLY'
-                          ? '📅 تعاقد أسبوعي'
-                          : '⚡ مشوار مرة واحدة',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  frequencyLabel,
+                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primary),
                 ),
               ),
-              Row(
-                children: [
-                  const Icon(Icons.people_alt_rounded, size: 14, color: AppColors.textSecondary),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${trip['passengersCount'] ?? 1} ركاب',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
 
-          // Route Details
-          Row(
-            children: [
-              const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  trip['pickupAddress'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              // Trip Type (ذهاب فقط / ذهاب وعودة)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isRoundTrip ? AppColors.accent.withValues(alpha: 0.12) : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isRoundTrip ? Icons.sync_alt_rounded : Icons.arrow_forward_rounded,
+                      size: 13,
+                      color: isRoundTrip ? AppColors.accent : Colors.blue.shade800,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isRoundTrip ? 'ذهاب وعودة' : 'ذهاب فقط',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: isRoundTrip ? AppColors.accent : Colors.blue.shade800,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.location_on_rounded, color: AppColors.accent, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  trip['dropoffAddress'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 20, color: AppColors.cardBorder),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'وقت الذهاب: ${trip['preferredTime'] ?? ''}',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              if (trip['hasReturn'] == true)
-                Text(
-                  'العودة: ${trip['returnTime'] ?? ''}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accent),
+              // Seats Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.cardBorder),
                 ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_alt_rounded, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$seatsCount ركاب',
+                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
 
+          // Route: Pickup & Dropoff
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.radio_button_checked, color: AppColors.primary, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('نقطة الانطلاق (من):', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          Text(
+                            trip['pickupAddress'] ?? 'موقع الانطلاق',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      SizedBox(width: 8),
+                      SizedBox(
+                        height: 16,
+                        child: VerticalDivider(color: AppColors.cardBorder, thickness: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: AppColors.accent, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('نقطة الوصول (إلى):', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          Text(
+                            trip['dropoffAddress'] ?? 'موقع الوصول',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Timings Section (وقت الذهاب ووقت العودة)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.secondaryLight.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.secondary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'وقت الذهاب: $departureTime',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                  ],
+                ),
+                if (isRoundTrip)
+                  Row(
+                    children: [
+                      const Icon(Icons.replay_rounded, size: 16, color: AppColors.accent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'العودة: $returnTime',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accent),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Bid Submission Button
           ElevatedButton.icon(
             onPressed: () => _showSubmitBidDialog(trip),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.local_offer_rounded, size: 18),
-            label: const Text('تقديم عرض سعر لهذا المشوار'),
+            label: const Text(
+              'تقديم عرض سعر لهذا المشوار',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
           ),
         ],
       ),
