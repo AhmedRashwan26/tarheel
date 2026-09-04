@@ -413,9 +413,9 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
 
         Row(
           children: [
-            _buildLoginChannelChip('WHATSAPP', 'واتساب', Icons.chat_bubble_rounded),
+            Expanded(child: _buildLoginChannelChip('WHATSAPP', 'عبر الواتساب', Icons.chat_bubble_rounded)),
             const SizedBox(width: 12),
-            _buildLoginChannelChip('SMS', 'رسالة SMS', Icons.sms_rounded),
+            Expanded(child: _buildLoginChannelChip('EMAIL', 'عبر الإيميل', Icons.email_rounded)),
           ],
         ),
 

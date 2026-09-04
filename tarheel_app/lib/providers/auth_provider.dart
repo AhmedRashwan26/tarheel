@@ -106,44 +106,16 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      // Local dev simulation with code 123456
-      if (code == '123456' || code.isNotEmpty) {
-        _token = 'simulated_local_jwt_token';
-        _user = {
-          'id': 'user_demo_1',
-          'fullName': _userRole == 'DRIVER' ? 'كابتن / فهد الشمري' : 'سلطان القحطاني',
-          'phoneNumber': identifier.contains('@') ? '+966593355884' : identifier,
-          'phone': identifier.contains('@') ? '+966593355884' : identifier,
-          'email': identifier.contains('@') ? identifier : 'client@tarheel.sa',
-          'role': _userRole,
-          'wallet': {'balance': '650.00'},
-          'driverProfile': {
-            'isVerified': true,
-            'bankName': 'مصرف الراجحي',
-            'ibanNumber': 'SA4480000123456789012345',
-            'vehicle': {
-              'make': 'تويوتا',
-              'model': 'كامري قراندي',
-              'year': 2024,
-              'color': 'أبيض لؤلؤي',
-              'capacity': 4,
-              'hasAirConditioning': true,
-            }
-          }
-        };
-        await StorageService.saveToken(_token!);
-        await StorageService.saveRole(_userRole);
-        await StorageService.saveUserProfile(_user!);
-        _status = AuthStatus.authenticated;
-        notifyListeners();
-        return true;
-      }
-
       _status = AuthStatus.unauthenticated;
       if (e is DioException) {
-        _errorMessage = e.error?.toString() ?? 'رمز التحقق غير صحيح';
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          _errorMessage = resData['message'].toString();
+        } else {
+          _errorMessage = e.error?.toString() ?? 'رمز التحقق غير صحيح أو منتهي الصلاحية';
+        }
       } else {
-        _errorMessage = 'رمز التحقق غير صحيح';
+        _errorMessage = 'رمز التحقق غير صحيح أو منتهي الصلاحية';
       }
       notifyListeners();
       return false;

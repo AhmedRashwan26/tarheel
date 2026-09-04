@@ -267,11 +267,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
 
         Row(
           children: [
-            _buildChannelChip('WHATSAPP', 'واتساب', Icons.chat_bubble_rounded),
-            const SizedBox(width: 8),
-            _buildChannelChip('SMS', 'رسالة SMS', Icons.sms_rounded),
-            const SizedBox(width: 8),
-            _buildChannelChip('EMAIL', 'إيميل', Icons.email_rounded),
+            Expanded(child: _buildChannelChip('WHATSAPP', 'عبر الواتساب', Icons.chat_bubble_rounded)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildChannelChip('EMAIL', 'عبر الإيميل', Icons.email_rounded)),
           ],
         ),
 

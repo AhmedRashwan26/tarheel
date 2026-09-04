@@ -20,7 +20,7 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final _otpController = TextEditingController(text: '123456');
+  final _otpController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -88,8 +88,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     color: AppColors.accent.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.mark_email_read_rounded,
+                  child: Icon(
+                    isEmail ? Icons.mark_email_read_rounded : Icons.chat_bubble_outline_rounded,
                     size: 40,
                     color: AppColors.accent,
                   ),
@@ -109,7 +109,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               Text(
                 isEmail
                     ? 'تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك الإلكتروني:\n${widget.identifier}'
-                    : 'تم إرسال رمز التحقق المكون من 6 أرقام إلى رقمك:\n${widget.identifier}',
+                    : 'تم إرسال رمز التحقق المكون من 6 أرقام عبر الواتساب إلى:\n${widget.identifier}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
               ),
@@ -133,30 +133,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   prefixIcon: Icon(Icons.lock_clock_rounded, color: AppColors.accent),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Dev Mode Hint Banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.info_outline_rounded, size: 18, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text(
-                      'في بيئة التطوير الرمز الافتراضي للتجربة هو: 123456',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
               ElevatedButton(
                 onPressed: _isLoading ? null : _handleVerify,

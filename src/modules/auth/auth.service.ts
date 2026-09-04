@@ -66,7 +66,6 @@ export class AuthService {
       channel: selectedChannel,
       isRegistered: !!user,
       role: user?.role || null,
-      devOtpHint: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     };
   }
 
@@ -75,9 +74,8 @@ export class AuthService {
     const storedOtp = AuthService.otpStore.get(normalizedIdentifier);
 
     const isValidStored = storedOtp && storedOtp.code === dto.code.trim() && Date.now() <= storedOtp.expiresAt;
-    const isDevBypass = dto.code === '000000' || dto.code === '123456';
 
-    if (!isValidStored && !isDevBypass) {
+    if (!isValidStored) {
       throw new BadRequestException('رمز التحقق غير صحيح أو منتهي الصلاحية');
     }
 
