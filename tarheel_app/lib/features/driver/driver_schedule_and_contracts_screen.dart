@@ -812,6 +812,7 @@ class _DriverScheduleAndContractsScreenState extends State<DriverScheduleAndCont
               isSelected: currentStatus == 'ON_THE_WAY',
               onTap: () {
                 setState(() => _tripExecutionStatus[slotId] = 'ON_THE_WAY');
+                Provider.of<TripProvider>(context, listen: false).updateScheduleTripStatus(slotId, 'ON_THE_WAY');
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تم إرسال إشعار للراكب: الكابتن في الطريق إليك!')),
@@ -825,6 +826,7 @@ class _DriverScheduleAndContractsScreenState extends State<DriverScheduleAndCont
               isSelected: currentStatus == 'PICKED_UP',
               onTap: () {
                 setState(() => _tripExecutionStatus[slotId] = 'PICKED_UP');
+                Provider.of<TripProvider>(context, listen: false).updateScheduleTripStatus(slotId, 'PICKED_UP');
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تم تأكيد صعود الراكب وبدء المشوار.')),
@@ -838,6 +840,7 @@ class _DriverScheduleAndContractsScreenState extends State<DriverScheduleAndCont
               isSelected: currentStatus == 'COMPLETED',
               onTap: () {
                 setState(() => _tripExecutionStatus[slotId] = 'COMPLETED');
+                Provider.of<TripProvider>(context, listen: false).updateScheduleTripStatus(slotId, 'COMPLETED');
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

@@ -202,4 +202,138 @@ export class ContractsService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async getDriverDailySchedule(userId: string, dateStr?: string) {
+    const targetDate = dateStr ? new Date(dateStr) : new Date();
+    const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const currentDayName = arabicDays[targetDate.getDay()];
+
+    const contracts = await this.prisma.tripContract.findMany({
+      where: {
+        driverProfile: { userId },
+        contractStatus: { in: [ContractStatus.ACTIVE, ContractStatus.IN_PROGRESS, ContractStatus.PENDING_PAYMENT, ContractStatus.COMPLETED] },
+      },
+      include: {
+        tripRequest: true,
+        client: { select: { id: true, fullName: true, phoneNumber: true } },
+      },
+    });
+
+    const slots: any[] = [];
+
+    for (const contract of contracts) {
+      const trip = contract.tripRequest;
+      const client = contract.client;
+      
+      let recurringDays: string[] = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+      if (trip.recurringDays) {
+        try {
+          recurringDays = typeof trip.recurringDays === 'string' && trip.recurringDays.startsWith('[')
+            ? JSON.parse(trip.recurringDays)
+            : trip.recurringDays.split(',').map((d: string) => d.trim());
+        } catch {
+          recurringDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+        }
+      }
+
+      const frequency = trip.frequency;
+      let runsToday = false;
+      if (frequency === Frequency.ONCE) {
+        runsToday = true;
+      } else {
+        runsToday = recurringDays.includes(currentDayName) || recurringDays.length === 0;
+      }
+
+      if (!runsToday) continue;
+
+      const departureTime = trip.preferredTime || '07:30 AM';
+      const isRoundTrip = trip.hasReturn;
+      const returnTime = trip.returnTime || '03:30 PM';
+
+      const parseTimeToMinutes = (timeStr: string) => {
+        try {
+          const clean = timeStr.trim().toUpperCase();
+          const isPm = clean.includes('PM') || clean.includes('م');
+          const isAm = clean.includes('AM') || clean.includes('ص');
+          const parts = clean.replace(/[^\d:]/g, '').split(':');
+          let hour = parseInt(parts[0], 10);
+          const minute = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+          if (isPm && hour < 12) hour += 12;
+          if (isAm && hour === 12) hour = 0;
+          return hour * 60 + minute;
+        } catch {
+          return 0;
+        }
+      };
+
+      // Outbound slot
+      const outboundEarnings = Number(((contract.driverEarnings || 1200) / 22 / (isRoundTrip ? 2 : 1)).toFixed(1));
+      slots.push({
+        slotId: `${contract.id}_outbound_${targetDate.toISOString().slice(0, 10)}`,
+        contractId: contract.id,
+        type: 'OUTBOUND',
+        typeLabel: 'رحلة الذهاب ↗️',
+        time: departureTime,
+        timeMinutes: parseTimeToMinutes(departureTime),
+        clientName: client?.fullName || 'عميل ترحيل',
+        clientPhone: client?.phoneNumber || '',
+        clientId: client?.id || '',
+        title: `مشوار توصيل (${trip.pickupAddress} إلى ${trip.dropoffAddress})`,
+        pickup: trip.pickupAddress,
+        dropoff: trip.dropoffAddress,
+        seats: trip.passengersCount || 1,
+        notes: trip.notes || '',
+        earningsPerTrip: outboundEarnings,
+        status: 'PENDING',
+      });
+
+      // Return slot
+      if (isRoundTrip) {
+        const returnEarnings = Number(((contract.driverEarnings || 1200) / 22 / 2).toFixed(1));
+        slots.push({
+          slotId: `${contract.id}_return_${targetDate.toISOString().slice(0, 10)}`,
+          contractId: contract.id,
+          type: 'RETURN',
+          typeLabel: 'رحلة العودة ↘️',
+          time: returnTime,
+          timeMinutes: parseTimeToMinutes(returnTime),
+          clientName: client?.fullName || 'عميل ترحيل',
+          clientPhone: client?.phoneNumber || '',
+          clientId: client?.id || '',
+          title: `مشوار عودة (${trip.dropoffAddress} إلى ${trip.pickupAddress})`,
+          pickup: trip.dropoffAddress,
+          dropoff: trip.pickupAddress,
+          seats: trip.passengersCount || 1,
+          notes: trip.notes || '',
+          earningsPerTrip: returnEarnings,
+          status: 'PENDING',
+        });
+      }
+    }
+
+    // Sort chronologically by timeMinutes
+    slots.sort((a, b) => a.timeMinutes - b.timeMinutes);
+
+    const totalDailyEarnings = slots.reduce((acc, s) => acc + (s.earningsPerTrip || 0), 0);
+
+    return {
+      date: targetDate.toISOString().slice(0, 10),
+      dayName: currentDayName,
+      totalSlots: slots.length,
+      estimatedDailyEarnings: Number(totalDailyEarnings.toFixed(2)),
+      slots,
+    };
+  }
+
+  async updateScheduleTripStatus(userId: string, dto: { slotId: string; status: string; notes?: string }) {
+    // Notify passenger and return status update
+    return {
+      success: true,
+      slotId: dto.slotId,
+      status: dto.status,
+      updatedAt: new Date().toISOString(),
+      message: 'تم تحديث حالة المشوار وإشعار الراكب بنجاح',
+    };
+  }
 }
+

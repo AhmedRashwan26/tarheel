@@ -29,6 +29,22 @@ export class ContractsController {
     return this.contractsService.getMyContracts(userId);
   }
 
+  @Get('driver-schedule')
+  @ApiBearerAuth()
+  @Roles(Role.DRIVER)
+  @ApiOperation({ summary: 'توليد جدول المشاوير اليومية للسائق مرتباً بالساعات حسب تعاقداته المفتوحة' })
+  getDriverSchedule(@CurrentUser('id') userId: string, @Param('date') date?: string) {
+    return this.contractsService.getDriverDailySchedule(userId, date);
+  }
+
+  @Post('driver-schedule/update-status')
+  @ApiBearerAuth()
+  @Roles(Role.DRIVER)
+  @ApiOperation({ summary: 'تحديث حالة مشوار اليوم بالجدول (في الطريق / صعد الراكب / مكتمل)' })
+  updateScheduleTripStatus(@CurrentUser('id') userId: string, @Body() dto: { slotId: string; status: string; notes?: string }) {
+    return this.contractsService.updateScheduleTripStatus(userId, dto);
+  }
+
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'استرجاع تفاصيل عقد التوصيل بالكامل مع حالة الضمان المالي' })

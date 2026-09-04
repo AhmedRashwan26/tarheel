@@ -39,6 +39,8 @@ class ApiEndpoints {
   static String get acceptOffer => '$baseUrl/contracts/accept-offer';
   static String get myContracts => '$baseUrl/contracts/my-contracts';
   static String contractDetails(String id) => '$baseUrl/contracts/$id';
+  static String driverSchedule(String date) => '$baseUrl/contracts/driver-schedule?date=$date';
+  static String get updateScheduleStatus => '$baseUrl/contracts/driver-schedule/update-status';
   static String get processEscrowPayment => '$baseUrl/payments/process-escrow';
   static String completeContract(String contractId) => '$baseUrl/payments/complete-contract/$contractId';
 

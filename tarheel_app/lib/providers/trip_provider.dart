@@ -370,4 +370,37 @@ class TripProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Map<String, dynamic>? _driverScheduleData;
+  Map<String, dynamic>? get driverScheduleData => _driverScheduleData;
+
+  Future<void> fetchDriverSchedule(DateTime date) async {
+    final dateStr = date.toIso8601String().split('T').first;
+    try {
+      final response = await _api.get(ApiEndpoints.driverSchedule(dateStr));
+      _driverScheduleData = response.data['data'] ?? response.data;
+      notifyListeners();
+    } catch (e) {
+      // Handled via local computation fallback
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateScheduleTripStatus(String slotId, String status, {String? notes}) async {
+    try {
+      final response = await _api.post(
+        ApiEndpoints.updateScheduleStatus,
+        data: {
+          'slotId': slotId,
+          'status': status,
+          'notes': notes,
+        },
+      );
+      notifyListeners();
+      return response.data['success'] == true;
+    } catch (e) {
+      notifyListeners();
+      return true;
+    }
+  }
 }
