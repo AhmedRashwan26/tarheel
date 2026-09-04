@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import 'client_login_screen.dart';
-import 'driver_register_screen.dart';
+import 'driver_auth_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -95,7 +95,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   final auth = Provider.of<AuthProvider>(context, listen: false);
                   auth.setRole('DRIVER');
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const DriverRegisterScreen()),
+                    MaterialPageRoute(builder: (_) => const DriverAuthScreen()),
                   );
                 },
               ),
