@@ -359,7 +359,3 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
     );
   }
 }
-      ),
-    );
-  }
-}

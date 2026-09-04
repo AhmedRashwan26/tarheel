@@ -23,29 +23,14 @@ class RoleSelectionScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.25),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.directions_car_filled_rounded,
-                        color: AppColors.accent,
-                        size: 44,
-                      ),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      height: 140,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     const Text(
-                      'حياك الله في ترحيل',
+                      'حياك الله',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
