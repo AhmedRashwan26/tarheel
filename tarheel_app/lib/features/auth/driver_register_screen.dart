@@ -128,17 +128,19 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
     };
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.setRole('DRIVER');
     final success = await auth.registerDriver(driverPayload);
     setState(() => _isLoading = false);
 
     if (success && mounted) {
-      await auth.sendOtp(_phoneController.text.trim(), channel: 'WHATSAPP');
+      await auth.sendOtp(_phoneController.text.trim(), channel: 'WHATSAPP', role: 'DRIVER');
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => OtpVerificationScreen(
               identifier: _phoneController.text.trim(),
               isRegistration: true,
+              role: 'DRIVER',
             ),
           ),
         );

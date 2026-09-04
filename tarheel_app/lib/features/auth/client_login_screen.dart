@@ -78,7 +78,8 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
 
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final success = await auth.sendOtp(identifier, channel: _selectedChannel);
+    auth.setRole('CLIENT');
+    final success = await auth.sendOtp(identifier, channel: _selectedChannel, role: 'CLIENT');
     setState(() => _isLoading = false);
 
     if (success && mounted) {
@@ -87,6 +88,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
           builder: (_) => OtpVerificationScreen(
             identifier: identifier,
             isRegistration: false,
+            role: 'CLIENT',
           ),
         ),
       );
@@ -128,6 +130,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
 
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.setRole('CLIENT');
     final success = await auth.registerClient(
       fullName: fullName,
       phoneNumber: phone,
@@ -136,13 +139,14 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
     setState(() => _isLoading = false);
 
     if (success && mounted) {
-      await auth.sendOtp(phone, channel: 'WHATSAPP');
+      await auth.sendOtp(phone, channel: 'WHATSAPP', role: 'CLIENT');
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => OtpVerificationScreen(
               identifier: phone,
               isRegistration: true,
+              role: 'CLIENT',
             ),
           ),
         );
@@ -359,8 +363,8 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
       // If typing email, only EMAIL is enabled
       isEnabled = value == 'EMAIL';
     } else if (isPhone) {
-      // If typing phone, only WHATSAPP and SMS are enabled (Email is disabled)
-      isEnabled = value != 'EMAIL';
+      // If typing phone, only WHATSAPP is enabled (Email is disabled)
+      isEnabled = value == 'WHATSAPP';
     }
 
     final isSelected = _selectedChannel == value && isEnabled;

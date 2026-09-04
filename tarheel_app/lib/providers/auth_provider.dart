@@ -125,7 +125,7 @@ class AuthProvider extends ChangeNotifier {
       final data = response.data['data'];
       _token = data['accessToken'];
       _user = data['user'];
-      _userRole = _user?['role'] ?? targetRole;
+      _userRole = (targetRole == 'DRIVER' || _user?['role'] == 'DRIVER') ? 'DRIVER' : (_user?['role'] ?? targetRole);
 
       if (_token != null) {
         await StorageService.saveToken(_token!);

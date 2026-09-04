@@ -91,14 +91,15 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     final phone = _loginPhoneController.text.trim();
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال رقم الجوال المسجل')),
+        const SnackBar(content: Text('يرجى إدخال رقم الجوال أو البريد الإلكتروني')),
       );
       return;
     }
 
     setState(() => _isLoginLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final success = await auth.sendOtp(phone, channel: _selectedLoginChannel);
+    auth.setRole('DRIVER');
+    final success = await auth.sendOtp(phone, channel: _selectedLoginChannel, role: 'DRIVER');
     setState(() => _isLoginLoading = false);
 
     if (success && mounted) {
@@ -107,6 +108,7 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
           builder: (_) => OtpVerificationScreen(
             identifier: phone,
             isRegistration: false,
+            role: 'DRIVER',
           ),
         ),
       );
@@ -282,17 +284,19 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     };
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.setRole('DRIVER');
     final success = await auth.registerDriver(driverPayload);
     setState(() => _isRegisterLoading = false);
 
     if (success && mounted) {
-      await auth.sendOtp(_phoneController.text.trim(), channel: 'WHATSAPP');
+      await auth.sendOtp(_phoneController.text.trim(), channel: 'WHATSAPP', role: 'DRIVER');
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => OtpVerificationScreen(
               identifier: _phoneController.text.trim(),
               isRegistration: true,
+              role: 'DRIVER',
             ),
           ),
         );
@@ -389,17 +393,25 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
         ),
         const SizedBox(height: 6),
         const Text(
-          'أدخل رقم جوالك المسجل لاستلام رمز التحقق والدخول لحسابك',
+          'أدخل رقم جوالك أو بريدك الإلكتروني لاستلام رمز التحقق والدخول لحسابك',
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 24),
 
         TextField(
           controller: _loginPhoneController,
-          keyboardType: TextInputType.phone,
+          keyboardType: TextInputType.emailAddress,
+          onChanged: (val) {
+            final text = val.trim();
+            if (text.contains('@') && _selectedLoginChannel != 'EMAIL') {
+              setState(() => _selectedLoginChannel = 'EMAIL');
+            } else if (text.isNotEmpty && !text.contains('@') && _selectedLoginChannel != 'WHATSAPP') {
+              setState(() => _selectedLoginChannel = 'WHATSAPP');
+            }
+          },
           decoration: const InputDecoration(
-            labelText: 'رقم الجوال',
-            hintText: '+9665xxxxxxxx أو 05xxxxxxxx',
+            labelText: 'رقم الجوال أو البريد الإلكتروني',
+            hintText: '+9665xxxxxxxx أو name@email.com',
             prefixIcon: Icon(Icons.phone_iphone_rounded, color: AppColors.primary),
           ),
         ),

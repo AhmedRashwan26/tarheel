@@ -8,11 +8,13 @@ import '../driver/driver_main_screen.dart';
 class OtpVerificationScreen extends StatefulWidget {
   final String identifier;
   final bool isRegistration;
+  final String? role;
 
   const OtpVerificationScreen({
     super.key,
     required this.identifier,
     this.isRegistration = false,
+    this.role,
   });
 
   @override
@@ -48,16 +50,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final success = await auth.verifyOtp(widget.identifier, cleanCode, role: auth.userRole);
+    final targetRole = widget.role ?? auth.userRole;
+    final success = await auth.verifyOtp(widget.identifier, cleanCode, role: targetRole);
     setState(() => _isLoading = false);
 
     if (success && mounted) {
-      if (auth.isDriver) {
+      final isDriverMode = (targetRole == 'DRIVER') || (auth.userRole == 'DRIVER') || auth.isDriver;
+      if (isDriverMode) {
+        auth.setRole('DRIVER');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const DriverMainScreen()),
           (route) => false,
         );
       } else {
+        auth.setRole('CLIENT');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const ClientMainScreen()),
           (route) => false,

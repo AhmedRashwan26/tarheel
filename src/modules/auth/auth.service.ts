@@ -86,26 +86,25 @@ export class AuthService {
       if (!sent) {
         throw new BadRequestException('تعذر إرسال الرمز إلى البريد الإلكتروني. يرجى التأكد من صحة البريد أو تجربة الواتساب');
       }
-    } else if (selectedChannel === OtpDeliveryChannel.WHATSAPP) {
+    } else {
+      // Always use WhatsApp for phone numbers (SMS disabled)
       const sent = await this.otpSender.sendWhatsAppOtp(normalizedIdentifier, otpCode);
       if (!sent) {
         throw new BadRequestException('تعذر إرسال الرمز عبر الواتساب. يرجى التأكد من الرقم أو تجربة البريد الإلكتروني');
       }
-    } else {
-      await this.otpSender.sendSmsOtp(normalizedIdentifier, otpCode);
     }
 
     const channelNamesAr = {
       EMAIL: 'البريد الإلكتروني',
       WHATSAPP: 'الواتساب',
-      SMS: 'الرسائل النصية SMS',
+      SMS: 'الواتساب',
     };
 
     return {
-      message: `تم إرسال رمز التحقق بنجاح عبر (${channelNamesAr[selectedChannel]})`,
+      message: `تم إرسال رمز التحقق بنجاح عبر (${channelNamesAr[selectedChannel] || 'الواتساب'})`,
       identifier: dto.identifier,
       normalizedIdentifier,
-      channel: selectedChannel,
+      channel: selectedChannel === OtpDeliveryChannel.EMAIL ? OtpDeliveryChannel.EMAIL : OtpDeliveryChannel.WHATSAPP,
       isRegistered: !!user,
       role: user?.role || null,
     };
@@ -166,8 +165,8 @@ export class AuthService {
         },
         include: { driverProfile: { include: { vehicle: true } } },
       });
-    } else if (targetRole === Role.DRIVER && user.role !== Role.DRIVER) {
-      // If user logs in through the Driver portal, elevate to DRIVER role
+    } else if (targetRole === Role.DRIVER) {
+      // If user logs in through Driver portal, ensure role is DRIVER and driverProfile exists
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: {

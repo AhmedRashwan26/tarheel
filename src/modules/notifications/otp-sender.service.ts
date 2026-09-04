@@ -103,6 +103,7 @@ export class OtpSenderService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: phoneNumber,
+            code: otpCode,
             message: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n*${otpCode}*\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
           }),
         });
