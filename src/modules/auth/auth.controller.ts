@@ -13,10 +13,18 @@ export class AuthController {
   @Public()
   @Post('send-otp')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'إرسال رمز تحقق OTP إلى رقم الجوال' })
+  @ApiOperation({ summary: 'إرسال رمز تحقق OTP إلى رقم الجوال أو الإيميل' })
   @ApiResponse({ status: 200, description: 'تم إرسال رمز التحقق بنجاح' })
   sendOtp(@Body() dto: LoginPhoneDto) {
     return this.authService.sendOtp(dto);
+  }
+
+  @Public()
+  @Post('test-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'فحص إرسال الإيميل المباشر' })
+  testEmail(@Body('to') to?: string) {
+    return this.authService.testEmailDirect(to || 'pharmahmedrashwan@gmail.com');
   }
 
   @Public()

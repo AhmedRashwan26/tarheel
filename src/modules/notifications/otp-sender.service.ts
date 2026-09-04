@@ -13,21 +13,43 @@ export class OtpSenderService {
   }
 
   private initMailTransporter() {
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT) || 587;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const port = Number(process.env.SMTP_PORT) || 465;
+    const user = process.env.SMTP_USER || 'tarheel.platform@gmail.com';
+    const pass = process.env.SMTP_PASS || 'wziqbufvxcxpfttg';
 
-    if (host && user && pass) {
-      this.mailTransporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
+    this.mailTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+    this.logger.log(`SMTP Mail Transporter initialized with sender: ${user}`);
+  }
+
+  public getTransporter(): nodemailer.Transporter {
+    if (!this.mailTransporter) {
+      this.initMailTransporter();
+    }
+    return this.mailTransporter!;
+  }
+
+  async testEmailDirect(to: string) {
+    const transporter = this.getTransporter();
+    try {
+      const info = await transporter.sendMail({
+        from: `"منصة ترحيل" <${process.env.SMTP_USER || 'tarheel.platform@gmail.com'}>`,
+        to,
+        subject: '784920 هو رمز التحقق الخاص بك في ترحيل',
+        text: 'رمز التحقق الخاص بك في ترحيل هو: 784920',
       });
-      this.logger.log(`SMTP Mail Transporter initialized with sender: ${process.env.EMAIL_FROM || user}`);
-    } else {
-      this.logger.warn('SMTP credentials not provided in .env. Email OTP will run in logging/dev mode.');
+      return { success: true, messageId: info.messageId, to };
+    } catch (err) {
+      this.logger.error(`Diagnostic email error: ${err.message}`);
+      return { success: false, error: err.message };
     }
   }
 
@@ -136,23 +158,19 @@ export class OtpSenderService {
       </div>
     `;
 
-    if (this.mailTransporter) {
-      try {
-        await this.mailTransporter.sendMail({
-          from: `"${appName}" <${fromEmail}>`,
-          to: toEmail,
-          subject: `${otpCode} هو رمز التحقق الخاص بك في ترحيل`,
-          html: htmlContent,
-        });
-        this.logger.log(`✅ Email OTP sent successfully to ${toEmail}`);
-        return true;
-      } catch (error) {
-        this.logger.error(`Failed to send Email OTP: ${error.message}`);
-        return false;
-      }
-    } else {
-      this.logger.log(`[DEV MODE] Email OTP simulated. Code: ${otpCode} for ${toEmail}`);
+    const transporter = this.getTransporter();
+    try {
+      await transporter.sendMail({
+        from: `"${appName}" <${fromEmail}>`,
+        to: toEmail,
+        subject: `${otpCode} هو رمز التحقق الخاص بك في ترحيل`,
+        html: htmlContent,
+      });
+      this.logger.log(`✅ Email OTP sent successfully to ${toEmail}`);
       return true;
+    } catch (error) {
+      this.logger.error(`Failed to send Email OTP: ${error.message}`);
+      return false;
     }
   }
 

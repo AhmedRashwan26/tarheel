@@ -47,9 +47,15 @@ export class AuthService {
 
     // Send via the selected channel
     if (selectedChannel === OtpDeliveryChannel.EMAIL) {
-      await this.otpSender.sendEmailOtp(normalizedIdentifier, otpCode, user?.fullName);
+      const sent = await this.otpSender.sendEmailOtp(normalizedIdentifier, otpCode, user?.fullName);
+      if (!sent) {
+        throw new BadRequestException('تعذر إرسال الرمز إلى البريد الإلكتروني. يرجى التأكد من صحة البريد أو تجربة الواتساب');
+      }
     } else if (selectedChannel === OtpDeliveryChannel.WHATSAPP) {
-      await this.otpSender.sendWhatsAppOtp(dto.identifier.trim(), otpCode);
+      const sent = await this.otpSender.sendWhatsAppOtp(dto.identifier.trim(), otpCode);
+      if (!sent) {
+        throw new BadRequestException('تعذر إرسال الرمز عبر الواتساب. يرجى التأكد من الرقم أو تجربة البريد الإلكتروني');
+      }
     } else {
       await this.otpSender.sendSmsOtp(dto.identifier.trim(), otpCode);
     }
@@ -162,5 +168,9 @@ export class AuthService {
       tokenType: 'Bearer',
       expiresIn: '7d',
     };
+  }
+
+  async testEmailDirect(to: string) {
+    return this.otpSender.testEmailDirect(to);
   }
 }
