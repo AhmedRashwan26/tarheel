@@ -15,6 +15,15 @@ let sock = null;
 let latestQr = null;
 let isConnected = false;
 let connectedUser = null;
+const recentLogs = [];
+
+function logEvent(msg) {
+  const time = new Date().toLocaleTimeString('ar-SA', { hour12: false });
+  const entry = `[${time}] ${msg}`;
+  console.log(entry);
+  recentLogs.unshift(entry);
+  if (recentLogs.length > 40) recentLogs.pop();
+}
 
 async function startWhatsApp() {
   if (!fs.existsSync(AUTH_DIR)) {
@@ -113,6 +122,14 @@ function normalizePhoneForWhatsApp(phone) {
   return clean;
 }
 
+app.get('/logs', (req, res) => {
+  res.json({
+    connected: isConnected,
+    phone: connectedUser,
+    logs: recentLogs,
+  });
+});
+
 app.post('/send', async (req, res) => {
   const { to, message } = req.body;
 
@@ -128,12 +145,13 @@ app.post('/send', async (req, res) => {
     const cleanPhone = normalizePhoneForWhatsApp(to);
     const jid = `${cleanPhone}@s.whatsapp.net`;
 
-    console.log(`Sending WhatsApp message to ${jid}: ${message}`);
+    logEvent(`📤 جاري إرسال رسالة إلى ${cleanPhone}...`);
     const sendPromise = sock.sendMessage(jid, { text: message });
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
     );
     const result = await Promise.race([sendPromise, timeoutPromise]);
+    logEvent(`✅ تم تسليم الرسالة بنجاح إلى واتساب ${cleanPhone} (معرف: ${result?.key?.id})`);
 
     res.json({
       success: true,
@@ -141,6 +159,7 @@ app.post('/send', async (req, res) => {
       to: cleanPhone,
     });
   } catch (error) {
+    logEvent(`❌ فشل إرسال الرسالة إلى ${to}: ${error.message}`);
     console.error('Error sending WhatsApp message:', error);
     res.status(500).json({ success: false, error: error.message });
   }

@@ -193,8 +193,15 @@ export class OtpSenderService {
       await transporter.sendMail({
         from: `"${appName}" <${fromEmail}>`,
         to: toEmail,
-        subject: `${otpCode} هو رمز التحقق الخاص بك في ترحيل`,
+        replyTo: fromEmail,
+        subject: `رمز التحقق لمنصة ترحيل: ${otpCode}`,
+        text: `مرحباً بك في منصة ترحيل\n\nرمز التحقق الخاص بك لتسجيل الدخول إلى حسابك في ترحيل هو: ${otpCode}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.\nتنبيه أمني: لا تشارك هذا الرمز مع أي شخص. فريق ترحيل لن يطلب منك هذا الرمز أبداً.`,
         html: htmlContent,
+        headers: {
+          'X-Priority': '1',
+          'X-MSMail-Priority': 'High',
+          'Importance': 'high',
+        },
       });
       this.logger.log(`✅ Email OTP sent successfully to ${toEmail}`);
       return true;
