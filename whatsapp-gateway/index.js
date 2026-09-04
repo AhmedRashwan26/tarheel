@@ -125,6 +125,22 @@ app.post('/send', async (req, res) => {
   }
 });
 
+app.post('/logout', async (req, res) => {
+  try {
+    if (sock) {
+      await sock.logout();
+    }
+    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    isConnected = false;
+    connectedUser = null;
+    latestQr = null;
+    setTimeout(startWhatsApp, 1000);
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Beautiful Web Dashboard for QR Code Scanning
 app.get('/', (req, res) => {
   res.send(`
@@ -191,6 +207,18 @@ app.get('/', (req, res) => {
       color: #cbd5e1;
     }
     .steps ol { padding-right: 20px; }
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      margin-top: 15px;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { background: rgba(239, 68, 68, 0.3); }
   </style>
 </head>
 <body>
@@ -224,13 +252,16 @@ app.get('/', (req, res) => {
       <h2 style="color: #34d399; font-size: 20px; font-weight: 700;">تم الاتصال بنجاح!</h2>
       <p id="connectedPhone" style="color: #94a3b8; margin-top: 5px; font-size: 15px;"></p>
       <p style="color: #64748b; font-size: 13px; margin-top: 15px;">المنصة الآن ترسل رسائل OTP مباشرة ومجاناً عبر هذا الرقم.</p>
+      <button class="btn-logout" onclick="logoutNumber()">🔄 تغيير الرقم / تسجيل الخروج</button>
     </div>
   </div>
 
   <script>
+    const baseUrl = window.location.pathname.replace(/\\/$/, '');
+
     async function updateStatus() {
       try {
-        const res = await fetch('/status');
+        const res = await fetch(baseUrl + '/status');
         const data = await res.json();
         
         const badge = document.getElementById('statusBadge');
@@ -252,7 +283,7 @@ app.get('/', (req, res) => {
           qrBox.style.display = 'block';
           connectedBox.style.display = 'none';
 
-          const qrRes = await fetch('/qr');
+          const qrRes = await fetch(baseUrl + '/qr');
           const qrData = await qrRes.json();
           if (qrData.qr) {
             qrImg.src = qrData.qr;
@@ -262,6 +293,17 @@ app.get('/', (req, res) => {
         }
       } catch (err) {
         console.error('Error fetching status:', err);
+      }
+    }
+
+    async function logoutNumber() {
+      if (confirm('هل تريد فصل الرقم الحالي وربط رقم جديد؟')) {
+        try {
+          await fetch(baseUrl + '/logout', { method: 'POST' });
+          updateStatus();
+        } catch (e) {
+          alert('حدث خطأ أثناء تسجيل الخروج');
+        }
       }
     }
 
