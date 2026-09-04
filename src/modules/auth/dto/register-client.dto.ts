@@ -1,18 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsEmail, ValidateIf } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail } from 'class-validator';
 
 export class RegisterClientDto {
-  @ApiProperty({ example: '+966501234567', required: false, description: 'رقم جوال العميل (اختياري إذا تم التسجيل بالبريد الإلكتروني)' })
-  @ValidateIf((o) => !o.email)
-  @IsNotEmpty({ message: 'يجب إدخال رقم الجوال أو البريد الإلكتروني' })
+  @ApiProperty({ example: '+966501234567', description: 'رقم جوال العميل (مطلوب)' })
+  @IsNotEmpty({ message: 'رقم الجوال مطلوب' })
   @IsString()
-  phoneNumber?: string;
+  phoneNumber: string;
 
-  @ApiProperty({ example: 'ahmed@example.com', required: false, description: 'البريد الإلكتروني للعميل (اختياري إذا تم التسجيل برقم الجوال)' })
-  @ValidateIf((o) => !o.phoneNumber)
-  @IsNotEmpty({ message: 'يجب إدخال البريد الإلكتروني أو رقم الجوال' })
+  @ApiProperty({ example: 'ahmed@example.com', description: 'البريد الإلكتروني للعميل (مطلوب)' })
+  @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
   @IsEmail({}, { message: 'صيغة البريد الإلكتروني غير صحيحة' })
-  email?: string;
+  email: string;
 
   @ApiProperty({ example: 'أحمد بن عبدالله التميمي', description: 'الاسم الكامل للعميل' })
   @IsNotEmpty({ message: 'الاسم الكامل مطلوب' })

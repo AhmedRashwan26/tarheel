@@ -86,9 +86,16 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
       return;
     }
 
-    if (phone.isEmpty && email.isEmpty) {
+    if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال رقم الجوال أو البريد الإلكتروني على الأقل')),
+        const SnackBar(content: Text('يرجى إدخال رقم الجوال')),
+      );
+      return;
+    }
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال البريد الإلكتروني')),
       );
       return;
     }
@@ -97,19 +104,18 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final success = await auth.registerClient(
       fullName: fullName,
-      phoneNumber: phone.isNotEmpty ? phone : null,
-      email: email.isNotEmpty ? email : null,
+      phoneNumber: phone,
+      email: email,
     );
     setState(() => _isLoading = false);
 
     if (success && mounted) {
-      final target = phone.isNotEmpty ? phone : email;
-      await auth.sendOtp(target, channel: email.isNotEmpty && phone.isEmpty ? 'EMAIL' : 'WHATSAPP');
+      await auth.sendOtp(phone, channel: 'WHATSAPP');
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => OtpVerificationScreen(
-              identifier: target,
+              identifier: phone,
               isRegistration: true,
             ),
           ),
@@ -256,28 +262,29 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
           controller: _fullNameController,
           decoration: const InputDecoration(
             labelText: 'الاسم الكامل',
+            hintText: 'الاسم الثلاثي أو الكامل',
             prefixIcon: Icon(Icons.badge_outlined, color: AppColors.primary),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
         TextField(
           controller: _phoneController,
           keyboardType: TextInputType.phone,
           decoration: const InputDecoration(
-            labelText: 'رقم الجوال (اختياري إذا تم إدخال الإيميل)',
+            labelText: 'رقم الجوال',
             hintText: '+9665xxxxxxxx',
             prefixIcon: Icon(Icons.phone_iphone_rounded, color: AppColors.primary),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(
-            labelText: 'البريد الإلكتروني (اختياري إذا تم إدخال الجوال)',
-            hintText: 'example@mail.com',
+            labelText: 'البريد الإلكتروني',
+            hintText: 'name@example.com',
             prefixIcon: Icon(Icons.email_outlined, color: AppColors.primary),
           ),
         ),
@@ -306,7 +313,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.accent.withOpacity(0.15) : Colors.white,
+            color: isSelected ? AppColors.accent.withValues(alpha: 0.15) : Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? AppColors.accent : AppColors.cardBorder,
