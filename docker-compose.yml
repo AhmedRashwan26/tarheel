@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres:16-alpine
+    container_name: tarheel_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: tarheel
+      POSTGRES_PASSWORD: tarheel_secret
+      POSTGRES_DB: tarheel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tarheel -d tarheel_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue Service
+  redis:
+    image: redis:7-alpine
+    container_name: tarheel_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Tarheel Backend Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tarheel_backend
+    restart: always
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://tarheel:tarheel_secret@postgres:5432/tarheel_db?schema=public"
+      JWT_SECRET: "tarheel_super_secure_jwt_secret_key_2026_production_grade"
+      JWT_EXPIRES_IN: "7d"
+      PLATFORM_COMMISSION_PERCENTAGE: 10
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+      UPLOAD_DIR: "./uploads"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  redis_data:

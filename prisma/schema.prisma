@@ -1,0 +1,449 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CLIENT
+  DRIVER
+  ADMIN
+  SUPPORT_AGENT
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum Frequency {
+  ONCE
+  WEEKLY
+  MONTHLY
+  CUSTOM_DAYS
+}
+
+enum TripStatus {
+  OPEN_FOR_BIDS
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentType {
+  WEEKLY
+  MONTHLY
+  FULL_UPFRONT
+}
+
+enum EscrowStatus {
+  PENDING_PAYMENT
+  HELD_IN_ESCROW
+  RELEASED_TO_DRIVER_BANK
+  REFUNDED_TO_CLIENT
+  DISPUTED
+}
+
+enum ContractStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  INITIALIZED
+  CAPTURED
+  RELEASED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  MADA
+  APPLE_PAY
+  STC_PAY
+  WALLET
+}
+
+enum TransactionType {
+  ESCROW_PAYMENT
+  ESCROW_RELEASE
+  VAT_COLLECTED
+  COMMISSION_DEDUCTION
+  BANK_PAYOUT
+  REFUND
+}
+
+enum BankPayoutStatus {
+  NOT_APPLICABLE
+  PENDING_REVIEW
+  PROCESSING
+  TRANSFERRED_TO_BANK
+  FAILED
+}
+
+enum NotificationType {
+  BID_RECEIVED
+  BID_ACCEPTED
+  PAYMENT_CONFIRMED
+  RIDE_REMINDER
+  REVIEW_REQUESTED
+  KYC_UPDATE
+  BANK_PAYOUT_SENT
+  CHAT_MESSAGE_RECEIVED
+  SUPPORT_TICKET_REPLIED
+  SYSTEM_WARNING
+}
+
+enum MessageType {
+  TEXT
+  VOICE_NOTE
+  IMAGE
+  LOCATION
+}
+
+enum TicketDepartment {
+  CUSTOMER_SERVICE    // خدمة العملاء (استفسارات، تعديل رحلات، مدفوعات)
+  TECHNICAL_SUPPORT   // الدعم الفني (مشاكل تقنية، أخطاء في التطبيق، الخرائط)
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id          String   @id @default(uuid())
+  phoneNumber String?  @unique // إجباري للسائق، اختياري للعميل إذا سجل بالإيميل
+  email       String?  @unique // متاح للعميل للتسجيل والمصادقة
+  fullName    String
+  password    String?
+  role        Role     @default(CLIENT)
+  avatarUrl   String?
+  isBlocked   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  driverProfile          DriverProfile?
+  tripRequests           TripRequest[]           @relation("ClientTripRequests")
+  contractsAsClient      TripContract[]          @relation("ClientContracts")
+  reviewsGiven           Review[]                @relation("ReviewsGiven")
+  walletTransactions     WalletTransaction[]
+  notifications          Notification[]
+  sentMessages           ChatMessage[]           @relation("SentMessages")
+  receivedMessages       ChatMessage[]           @relation("ReceivedMessages")
+  supportTickets         SupportTicket[]
+
+  @@map("users")
+}
+
+model DriverProfile {
+  id                     String             @id @default(uuid())
+  userId                 String             @unique
+  nationalId             String             @unique
+  idCardPhotoUrl         String?
+  driverLicenseUrl       String?
+  vehicleRegistrationUrl String?            // رخصة سير السيارة
+
+  // بيانات الحساب البنكي وإثبات الحساب PDF
+  bankName               String?            // اسم البنك
+  iban                   String?            // رقم الآيبان البنكي (SA...)
+  bankAccountHolderName  String?            // اسم صاحب الحساب البنكي
+  bankCertificatePdfUrl  String?            // ملف إثبات الحساب البنكي / شهادة الآيبان PDF
+
+  verificationStatus     VerificationStatus @default(PENDING)
+  rejectionReason        String?
+  approvedAt             DateTime?
+  agreedToAntiCashPolicyAt DateTime         @default(now())
+  ratingAverage          Float              @default(5.0)
+  totalRatingsCount      Int                @default(0)
+  totalTripsCount        Int                @default(0)
+  walletBalance          Float              @default(0.0)
+  pendingEscrowBalance   Float              @default(0.0)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle                Vehicle?
+  offers                 TripOffer[]
+  contracts              TripContract[]     @relation("DriverContracts")
+  reviewsReceived        Review[]           @relation("DriverReviews")
+
+  @@map("driver_profiles")
+}
+
+model Vehicle {
+  id              String        @id @default(uuid())
+  driverProfileId String        @unique
+  brand           String
+  model           String
+  year            Int
+  plateNumber     String        @unique
+  capacity        Int           // عدد الركاب المتاح
+  isAirConditioned Boolean      @default(true) // هل السيارة مكيفة
+  photoFrontUrl   String?       // صورة السيارة من الأمام
+  photoBackUrl    String?       // صورة السيارة من الخلف
+  photoRightUrl   String?       // صورة السيارة من اليمين
+  photoLeftUrl    String?       // صورة السيارة من اليسار
+  photoInteriorUrl String?      // صورة السيارة من الداخل
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  @@map("vehicles")
+}
+
+model TripRequest {
+  id               String       @id @default(uuid())
+  clientId         String
+  pickupAddress    String
+  pickupLatitude   Float
+  pickupLongitude  Float
+  dropoffAddress   String
+  dropoffLatitude  Float
+  dropoffLongitude Float
+  startDate        DateTime
+  preferredTime    String       // وقت الذهاب (HH:mm)
+  hasReturn        Boolean      @default(false)
+  returnTime       String?      // وقت العودة (HH:mm)
+  frequency        Frequency    @default(ONCE)
+  recurringDays    String?      // أيام التكرار
+  passengersCount  Int          @default(1)
+  notes            String?
+  status           TripStatus   @default(OPEN_FOR_BIDS)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  client           User         @relation("ClientTripRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  offers           TripOffer[]
+  contract         TripContract?
+  chatMessages     ChatMessage[]
+
+  @@map("trip_requests")
+}
+
+model TripOffer {
+  id              String        @id @default(uuid())
+  tripRequestId   String
+  driverProfileId String
+  offerPrice      Float         // السعر الأساسي للرحلة
+  driverNotes     String?
+  status          OfferStatus   @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tripRequest     TripRequest   @relation(fields: [tripRequestId], references: [id], onDelete: Cascade)
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  contract        TripContract?
+
+  @@map("trip_offers")
+}
+
+model TripContract {
+  id                       String           @id @default(uuid())
+  tripRequestId            String           @unique
+  clientId                 String
+  driverProfileId          String
+  acceptedOfferId          String           @unique
+  
+  // الحسابات المالية (السعر الأساسي + 15% ضريبة + 10% عمولة)
+  baseAmount               Float            // السعر الأساسي
+  vatRate                  Float            @default(15.0) // 15% ضريبة
+  vatAmount                Float            // قيمة الضريبة 15%
+  totalPaidByClient        Float            // الإجمالي المدفوع شاملاً الضريبة
+  
+  platformCommissionRate   Float            @default(10.0) // عمولة 10%
+  platformCommissionAmount Float            // قيمة العمولة 10%
+  driverEarnings           Float            // مستحقات السائق الصافية 90%
+  
+  paymentType              PaymentType      @default(MONTHLY)
+  escrowStatus             EscrowStatus     @default(PENDING_PAYMENT)
+  antiCashPolicyAcknowledged Boolean        @default(true)
+  contractStatus           ContractStatus   @default(PENDING_PAYMENT)
+  
+  // بيانات التحويل للحساب البنكي
+  bankPayoutStatus         BankPayoutStatus @default(NOT_APPLICABLE)
+  bankPayoutReference      String?
+  bankPayoutTransferredAt  DateTime?
+  driverBankIban           String?
+  driverBankName           String?
+  
+  startDate                DateTime
+  endDate                  DateTime?
+  completedAt              DateTime?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  tripRequest              TripRequest      @relation(fields: [tripRequestId], references: [id], onDelete: Cascade)
+  client                   User             @relation("ClientContracts", fields: [clientId], references: [id], onDelete: Cascade)
+  driverProfile            DriverProfile    @relation("DriverContracts", fields: [driverProfileId], references: [id], onDelete: Cascade)
+  acceptedOffer            TripOffer        @relation(fields: [acceptedOfferId], references: [id], onDelete: Cascade)
+  escrowPayment            EscrowPayment?
+  review                   Review?
+  chatMessages             ChatMessage[]
+  supportTickets           SupportTicket[]
+
+  @@map("trip_contracts")
+}
+
+model EscrowPayment {
+  id                        String        @id @default(uuid())
+  contractId                String        @unique
+  baseAmount                Float
+  vatAmount                 Float
+  totalAmount               Float
+  paymentMethod             PaymentMethod @default(CARD)
+  transactionReference      String        @unique
+  status                    PaymentStatus @default(INITIALIZED)
+  antiCashWarningDisplayed  Boolean       @default(true)
+  paidAt                    DateTime?
+  releasedAt                DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  contract                  TripContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@map("escrow_payments")
+}
+
+// نموذج المحادثة الآمنة والموثقة بين العميل والسائق (نصوص ورسائل صوتية عبر التطبيق حصراً)
+model ChatMessage {
+  id              String       @id @default(uuid())
+  contractId      String?      // العقد المرتبط إن وجد
+  tripRequestId   String?      // طلب المشوار المرتبط
+  senderId        String       // معرف المرسل (عميل أو سائق)
+  receiverId      String       // معرف المستلم
+  messageType     MessageType  @default(TEXT) // نص، رسالة صوتية، صورة، موقع جغرافي
+  content         String?      // النص المكتوب
+  mediaUrl        String?      // رابط الملف الصوتي (Voice note) أو الصورة
+  durationSeconds Int?         // مدة التسجيل الصوتي بالثواني
+  
+  // حقول مشاركة الموقع الجغرافي المباشر بين العميل والسائق
+  latitude        Float?       // خط العرض للموقع المشترك
+  longitude       Float?       // خط الطول للموقع المشترك
+  locationAddress String?      // اسم أو وصف الموقع (مثل: أمام البوابة الرئيسية)
+
+  isRead          Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+
+  sender          User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver        User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  contract        TripContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  tripRequest     TripRequest?  @relation(fields: [tripRequestId], references: [id], onDelete: SetNull)
+
+  @@map("chat_messages")
+}
+
+// نموذج التذاكر لخدمة العملاء والدعم الفني
+model SupportTicket {
+  id             String           @id @default(uuid())
+  userId         String           // العميل أو السائق صاحب التذكرة
+  contractId     String?          // رقم العقد المرتبط بالشكوى/الاستفسار إن وجد
+  department     TicketDepartment // CUSTOMER_SERVICE أو TECHNICAL_SUPPORT
+  subject        String           // عنوان التذكرة
+  description    String           // تفاصيل الطلب أو المشكلة
+  category       String           // تصنيف المشكلة (فواتير، مشاكل تقنية، شكوى سائق، إلخ)
+  status         TicketStatus     @default(OPEN)
+  priority       TicketPriority   @default(MEDIUM)
+  appVersion     String?          // إصدار التطبيق (للدعم الفني)
+  deviceInfo     String?          // معلومات الجهاز ونظام التشغيل (للدعم الفني)
+  attachments    String?          // JSON لروابط الصور والمرفقات
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contract       TripContract?    @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  replies        SupportReply[]
+
+  @@map("support_tickets")
+}
+
+model SupportReply {
+  id         String        @id @default(uuid())
+  ticketId   String
+  senderId   String        // معرف المرسل (العميل/السائق أو موظف الدعم)
+  senderRole Role          @default(CLIENT)
+  message    String        // نص الرد
+  attachmentUrl String?    // مرفق إضافي
+  createdAt  DateTime      @default(now())
+
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("support_replies")
+}
+
+model WalletTransaction {
+  id           String          @id @default(uuid())
+  userId       String
+  amount       Float
+  type         TransactionType
+  balanceAfter Float
+  description  String
+  contractId   String?
+  iban         String?
+  bankName     String?
+  createdAt    DateTime        @default(now())
+
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallet_transactions")
+}
+
+model Review {
+  id                 String        @id @default(uuid())
+  contractId         String        @unique
+  reviewerId         String
+  driverProfileId    String
+  rating             Int
+  punctualityRating  Int           @default(5)
+  cleanlinessRating  Int           @default(5)
+  comment            String?
+  createdAt          DateTime      @default(now())
+
+  contract           TripContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  reviewer           User          @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  driverProfile      DriverProfile @relation("DriverReviews", fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  metadata  String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
