@@ -1,5 +1,12 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { 
+  default: makeWASocket, 
+  useMultiFileAuthState, 
+  DisconnectReason, 
+  fetchLatestBaileysVersion, 
+  Browsers, 
+  makeCacheableSignalKeyStore 
+} = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -36,11 +43,18 @@ async function startWhatsApp() {
 
   sock = makeWASocket({
     version,
-    auth: state,
+    auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+    },
     logger: pino({ level: 'silent' }),
-    printQRInTerminal: true,
-    browser: ['Tarheel Platform', 'Chrome', '120.0.0'],
+    printQRInTerminal: false,
+    browser: Browsers.windows('Chrome'),
     syncFullHistory: false,
+    generateHighQualityLinkPreview: false,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 30000,
+    connectTimeoutMs: 60000,
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -143,12 +157,35 @@ app.post('/send', async (req, res) => {
 
   try {
     const cleanPhone = normalizePhoneForWhatsApp(to);
-    const jid = `${cleanPhone}@s.whatsapp.net`;
+    
+    // Check if recipient is on WhatsApp
+    let targetJid = `${cleanPhone}@s.whatsapp.net`;
+    try {
+      const checkResults = await sock.onWhatsApp(cleanPhone);
+      const waUser = Array.isArray(checkResults) && checkResults.length > 0 ? checkResults[0] : null;
+      if (waUser && waUser.exists && waUser.jid) {
+        targetJid = waUser.jid;
+        logEvent(`🔍 تم التحقق من وجود الرقم على واتساب: ${targetJid}`);
+      } else {
+        logEvent(`⚠️ تنبيه: الرقم ${cleanPhone} قد لا يكون مسجلاً في واتساب`);
+      }
+    } catch (checkErr) {
+      logEvent(`ℹ️ تعذر التحقق المسبق من الرقم: ${checkErr.message} - جاري المحاولة المباشرة`);
+    }
 
-    logEvent(`📤 جاري إرسال رسالة نصية مباشرة إلى ${cleanPhone}...`);
-    const sendPromise = sock.sendMessage(jid, { text: message });
+    logEvent(`✍️ جاري محاكاة الكتابة الطبيعية (Composing) إلى ${targetJid}...`);
+    try {
+      await sock.sendPresenceUpdate('composing', targetJid);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await sock.sendPresenceUpdate('paused', targetJid);
+    } catch (presenceErr) {
+      // Non-critical, continue
+    }
+
+    logEvent(`📤 جاري إرسال الرسالة إلى ${targetJid}...`);
+    const sendPromise = sock.sendMessage(targetJid, { text: message });
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
+      setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (12 ثانية)')), 12000)
     );
     const result = await Promise.race([sendPromise, timeoutPromise]);
     const messageId = result?.key?.id;
