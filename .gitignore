@@ -5,3 +5,5 @@ uploads/*
 !uploads/.gitkeep
 .git
 npm-debug.log
+whatsapp-gateway/auth_info
+whatsapp-gateway/node_modules
