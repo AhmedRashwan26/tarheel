@@ -95,7 +95,47 @@ export class OtpSenderService {
 
     this.logger.log(`[WHATSAPP OTP] Sending code [${otpCode}] to [${phoneNumber}]`);
 
-    // 1. Try Self-Hosted WhatsApp Gateway if configured
+    // 0. Try Evolution API on Hetzner Server (Enterprise Priority)
+    const evolutionUrl = process.env.EVOLUTION_API_URL;
+    const evolutionKey = process.env.EVOLUTION_API_KEY || 'Tarheel_Secure_Evolution_Key_2026';
+    const evolutionInstance = process.env.EVOLUTION_INSTANCE || 'tarheel';
+
+    if (evolutionUrl) {
+      try {
+        const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+        const evoEndpoint = `${evolutionUrl.replace(/\/+$/, '')}/message/sendText/${evolutionInstance}`;
+        
+        const response = await fetch(evoEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': evolutionKey,
+          },
+          body: JSON.stringify({
+            number: cleanPhone,
+            options: {
+              delay: 1200,
+              presence: 'composing',
+            },
+            textMessage: {
+              text: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+            },
+          }),
+        });
+
+        const resData = await response.json();
+        if (response.ok && (resData?.key || resData?.message || resData?.status === 'SUCCESS' || resData?.status === 200)) {
+          this.logger.log(`✅ [Hetzner Evolution API] WhatsApp OTP sent successfully to ${cleanPhone}`);
+          return true;
+        } else {
+          this.logger.warn(`Evolution API response: ${JSON.stringify(resData)}`);
+        }
+      } catch (evoErr) {
+        this.logger.warn(`Failed to send via Hetzner Evolution API: ${evoErr.message}`);
+      }
+    }
+
+    // 1. Try Local/Custom Self-Hosted WhatsApp Gateway if configured
     if (gatewayUrl) {
       try {
         const response = await fetch(`${gatewayUrl}/send`, {

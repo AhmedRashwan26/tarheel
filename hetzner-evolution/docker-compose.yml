@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database for Persistent WhatsApp Sessions
+  evolution_postgres:
+    image: postgres:16-alpine
+    container_name: evolution_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: tarheel_evo_secret_2026
+      POSTGRES_DB: evolution_db
+    volumes:
+      - evolution_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - evolution_network
+
+  # 2. Redis Cache for High-Speed Message Queue
+  evolution_redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - evolution_redisdata:/data
+    networks:
+      - evolution_network
+
+  # 3. Evolution API v2 Engine (Enterprise WhatsApp Gateway)
+  evolution_api:
+    image: atendai/evolution-api:v2.2.3
+    container_name: evolution_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Server Configuration
+      SERVER_URL: ${SERVER_URL:-http://localhost:8080}
+      SERVER_PORT: 8080
+      SERVER_TYPE: http
+      
+      # Authentication & Security
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: ${AUTHENTICATION_API_KEY:-Tarheel_Secure_Evolution_Key_2026}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      
+      # Database Storage (PostgreSQL for bulletproof session persistence)
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:tarheel_evo_secret_2026@evolution_postgres:5432/evolution_db?schema=public
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_MESSAGE_HISTORIC: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      
+      # Redis Queue Configuration
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://evolution_redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+
+      # Anti-Ban / Rate Limiting Defaults
+      DEL_INSTANCE: "false"
+      CONFIG_SESSION_PHONE_CLIENT: "Tarheel Business"
+      CONFIG_SESSION_PHONE_NAME: "Chrome (Linux)"
+    depends_on:
+      evolution_postgres:
+        condition: service_healthy
+      evolution_redis:
+        condition: service_started
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution_network
+
+networks:
+  evolution_network:
+    driver: bridge
+
+volumes:
+  evolution_pgdata:
+  evolution_redisdata:
+  evolution_instances:
