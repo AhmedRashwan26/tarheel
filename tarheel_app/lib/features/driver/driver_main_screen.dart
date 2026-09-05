@@ -5,7 +5,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
 import 'driver_feed_screen.dart';
 import 'driver_schedule_and_contracts_screen.dart';
-import '../chat/chat_room_screen.dart';
 import '../support/support_hub_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -105,7 +104,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                           color: AppColors.accent,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('عمولة 10% مخصومة', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: const Text('عمولة 13.50% مخصومة', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

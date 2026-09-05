@@ -48,7 +48,7 @@ export class AdminController {
 
   @Get('financial-overview')
   @ApiOperation({
-    summary: 'تقرير مالي شامل للمنصة (إجمالي حجم التداول، أرباح المنصة من عمولة 10%، مبالغ الضمان المحتجزة، ومستحقات السائقين)',
+    summary: 'تقرير مالي شامل للمنصة (إجمالي حجم التداول، أرباح المنصة من عمولة 13.50%، مبالغ الضمان المحتجزة، ومستحقات السائقين)',
   })
   getPlatformFinancialOverview() {
     return this.adminService.getPlatformFinancialOverview();

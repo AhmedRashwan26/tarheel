@@ -97,7 +97,7 @@ export class OffersService {
       offer,
       financialBreakdown: {
         offerPrice: dto.offerPrice,
-        platformCommissionRate: '10%',
+        platformCommissionRate: '13.50%',
         platformCommission: platformFee,
         driverEstimatedNetEarnings: netEarnings,
         antiCashNotice: PLATFORM_CONSTANTS.DRIVER_TERMS_WARNING_AR,

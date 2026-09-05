@@ -163,7 +163,7 @@ export class AdminService {
     return {
       financials: {
         vatRate: '15%',
-        platformCommissionRate: '10%',
+        platformCommissionRate: '13.50%',
         totalVolumePaidByClientsSAR: totalVolume,
         totalBaseTripVolumeSAR: totalBaseVolume,
         totalVat15PercentCollectedSAR: totalVatCollected,

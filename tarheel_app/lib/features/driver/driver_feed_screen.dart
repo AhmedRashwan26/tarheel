@@ -24,8 +24,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
     final notesController = TextEditingController(
         text: 'سيارة حديثة ومكيفة، ملتزم بالمواعيد المحددة.');
     double enteredPrice = 800.0;
-    double platformCommission = 80.0; // 10%
-    double netEarnings = 720.0; // 90%
+    double platformCommission = 108.0; // 13.50%
+    double netEarnings = 692.0; // 86.50%
 
     showModalBottomSheet(
       context: context,
@@ -85,8 +85,8 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                     final p = double.tryParse(val) ?? 0.0;
                     setModalState(() {
                       enteredPrice = p;
-                      platformCommission = p * 0.10;
-                      netEarnings = p - platformCommission;
+                      platformCommission = double.parse((p * 0.135).toStringAsFixed(2));
+                      netEarnings = double.parse((p - platformCommission).toStringAsFixed(2));
                     });
                   },
                 ),
@@ -105,7 +105,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('عمولة منصة ترحيل (10%):',
+                          const Text('عمولة منصة ترحيل (13.50%):',
                               style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary)),
@@ -120,7 +120,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('صافي أرباحك المحولة لحسابك (90%):',
+                          const Text('صافي أرباحك المحولة لحسابك (86.50%):',
                               style: TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.bold)),
                           Text(

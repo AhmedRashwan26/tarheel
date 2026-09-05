@@ -154,8 +154,8 @@ export class PaymentsService {
       throw new BadRequestException('المبلغ ليس محتجزاً في الضمان المالي أو تم تحريره مسبقاً');
     }
 
-    const netDriverEarnings = contract.driverEarnings; // 90% of base amount
-    const platformCommission = contract.platformCommissionAmount; // 10% of base amount
+    const netDriverEarnings = contract.driverEarnings; // 86.50% of base amount
+    const platformCommission = contract.platformCommissionAmount; // 13.50% of base amount
     const bankPayoutRef = `TRH-BNK-${Date.now()}-${uuidv4().substring(0, 6).toUpperCase()}`;
     const driverIban = contract.driverProfile.iban || contract.driverBankIban || 'الحساب البنكي المسجل';
     const driverBank = contract.driverProfile.bankName || contract.driverBankName || 'البنك المسجل';
@@ -179,7 +179,7 @@ export class PaymentsService {
           amount: netDriverEarnings,
           type: TransactionType.BANK_PAYOUT,
           balanceAfter: updatedDriver.walletBalance,
-          description: `تحويل بنكي مباشر لمستحقات مشوار التوصيل (#${contract.id.substring(0, 8)}) إلى ${driverBank} - آيبان: ${driverIban} (بعد خصم 10% عمولة ترحيل)`,
+          description: `تحويل بنكي مباشر لمستحقات مشوار التوصيل (#${contract.id.substring(0, 8)}) إلى ${driverBank} - آيبان: ${driverIban} (بعد خصم 13.50% عمولة ترحيل)`,
           contractId: contract.id,
           iban: driverIban,
           bankName: driverBank,
@@ -223,7 +223,7 @@ export class PaymentsService {
     await this.notificationsService.createNotification(
       contract.driverProfile.user.id,
       'تم تحويل أرباحك إلى حسابك البنكي!',
-      `تم تحويل مبلغ ${netDriverEarnings} ر.س إلى حسابك البنكي (${driverBank} - ${driverIban}) بمرجع (${bankPayoutRef}) بعد خصم عمولة ترحيل (${platformCommission} ر.س - 10%). شكراً لالتزامك وجودة خدمتك.`,
+      `تم تحويل مبلغ ${netDriverEarnings} ر.س إلى حسابك البنكي (${driverBank} - ${driverIban}) بمرجع (${bankPayoutRef}) بعد خصم عمولة ترحيل (${platformCommission} ر.س - 13.50%). شكراً لالتزامك وجودة خدمتك.`,
       NotificationType.BANK_PAYOUT_SENT,
       {
         contractId: contract.id,
@@ -245,11 +245,14 @@ export class PaymentsService {
     );
 
     return {
-      message: 'تم إنهاء مدة التوصيل بنجاح وتحويل المستحقات لحساب السائق البنكي المعتمد بعد خصم عمولة ترحيل (10%). يرجى تقييم السائق.',
+      message: 'تم إنهاء مدة التوصيل بنجاح وتحويل المستحقات لحساب السائق البنكي المعتمد بعد خصم عمولة ترحيل (13.50%). يرجى تقييم السائق.',
       financialSummary: {
         baseTripPrice: contract.baseAmount,
         vat15PercentCollected: contract.vatAmount,
         totalPaidByClient: contract.totalPaidByClient,
+        platformCommission: platformCommission,
+        platformCommissionRate: '13.50%',
+        driverTransferredEarnings: netDriverEarnings,
         platformCommission10Percent: platformCommission,
         driverTransferredEarnings90Percent: netDriverEarnings,
         destinationBankAccount: {

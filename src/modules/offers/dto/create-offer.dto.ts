@@ -9,7 +9,7 @@ export class CreateOfferDto {
 
   @ApiProperty({
     example: 1200,
-    description: 'سعر العرض الإجمالي المقترح بالريال السعودي (شاملاً عمولة التطبيق 10%)',
+    description: 'سعر العرض الإجمالي المقترح بالريال السعودي (شاملاً عمولة التطبيق 13.50%)',
   })
   @IsNotEmpty({ message: 'سعر العرض مطلوب' })
   @IsNumber({}, { message: 'يجب أن يكون السعر رقماً' })

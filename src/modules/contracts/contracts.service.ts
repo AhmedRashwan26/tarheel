@@ -53,10 +53,10 @@ export class ContractsService {
     const vatAmount = Number(((baseAmount * vatRate) / 100).toFixed(2));
     const totalPaidByClient = Number((baseAmount + vatAmount).toFixed(2));
 
-    // 10% platform commission deducted from base amount
-    const commissionRate = PLATFORM_CONSTANTS.COMMISSION_PERCENTAGE; // 10%
+    // 13.50% platform commission deducted from base amount
+    const commissionRate = PLATFORM_CONSTANTS.COMMISSION_PERCENTAGE; // 13.5%
     const commissionAmount = Number(((baseAmount * commissionRate) / 100).toFixed(2));
-    const driverEarnings = Number((baseAmount - commissionAmount).toFixed(2)); // 90%
+    const driverEarnings = Number((baseAmount - commissionAmount).toFixed(2)); // 86.5%
 
     let defaultPaymentType: PaymentType = PaymentType.FULL_UPFRONT;
     if (offer.tripRequest.frequency === Frequency.MONTHLY) defaultPaymentType = PaymentType.MONTHLY;
@@ -121,7 +121,7 @@ export class ContractsService {
     });
 
     // Notify Driver via WebSocket and Database Notification
-    const driverNoticeMessage = `تنبيه مهم للسائق: تم قبول عرضك لمشوار (${offer.tripRequest.pickupAddress} إلى ${offer.tripRequest.dropoffAddress})! يجب التواجد في الموعد المحدد (${offer.tripRequest.preferredTime}) وموقع الانطلاق بدقة. قيمة المشوار الأساسية (${baseAmount} ر.س) - مستحقاتك بعد خصم 10% عمولة ترحيل هي (${driverEarnings} ر.س) سيتم تحويلها لحسابك البنكي (${offer.driverProfile.bankName} - ${offer.driverProfile.iban}) بعد انتهاء مدة التوصيل وتقييم العميل.`;
+    const driverNoticeMessage = `تنبيه مهم للسائق: تم قبول عرضك لمشوار (${offer.tripRequest.pickupAddress} إلى ${offer.tripRequest.dropoffAddress})! يجب التواجد في الموعد المحدد (${offer.tripRequest.preferredTime}) وموقع الانطلاق بدقة. قيمة المشوار الأساسية (${baseAmount} ر.س) - مستحقاتك بعد خصم 13.50% عمولة ترحيل هي (${driverEarnings} ر.س) سيتم تحويلها لحسابك البنكي (${offer.driverProfile.bankName} - ${offer.driverProfile.iban}) بعد انتهاء مدة التوصيل وتقييم العميل.`;
 
     this.gateway.notifyDriverBidAccepted(offer.driverProfile.user.id, result);
     await this.notificationsService.createNotification(
@@ -140,7 +140,7 @@ export class ContractsService {
         vatRate: '15%',
         vatAmount,
         totalPayableByClient: totalPaidByClient,
-        platformCommissionRate: '10%',
+        platformCommissionRate: '13.50%',
         platformCommission: commissionAmount,
         driverNetEarnings: driverEarnings,
         driverTargetBank: `${offer.driverProfile.bankName || 'البنك المسجل'} (${offer.driverProfile.iban || ''})`,
@@ -336,4 +336,3 @@ export class ContractsService {
     };
   }
 }
-

@@ -45,8 +45,10 @@
 - [ ] التأكد من تجهيز جداول الإنتاج النظيفة مع إبقاء حسابات الإدارة الرسمية والبيانات الأساسية فقط تمهيداً للإطلاق.
 
 ### 5. ⚙️ تعديل نسبة عمولة التطبيق إلى 13.50% وإدخال المميزات الجديدة
-- [ ] تعديل نسبة العمولة في الباك إند من 10% إلى **13.50%**:
-  - تحديث المتغير البيئي `PLATFORM_COMMISSION_PERCENTAGE=13.50` في `.env`.
+- [x] تعديل نسبة العمولة في كامل المنصة والباك إند وتطبيق الموبايل من 10% إلى **13.50%**:
+  - تحديث الثوابت البرمجية `PLATFORM_CONSTANTS.COMMISSION_PERCENTAGE = 13.50` و `DRIVER_PERCENTAGE = 86.50`.
   - تحديث القيمة الافتراضية في `schema.prisma` (`platformCommissionRate Float @default(13.5)`).
-  - تحديث الحسابات البرمجية في `TripContract` و `PaymentsService` لتوزيع (13.50% للمنصة و 86.50% للسائق).
+  - تحديث الحسابات البرمجية وفواتير العقود في `contracts.service.ts` و `payments.service.ts` و `offers.service.ts` و `admin.service.ts` لتوزيع (13.50% للمنصة و 86.50% للسائق).
+  - تحديث واجهات وتنبيهات وحسابات تطبيق فلاتر (`driver_feed_screen.dart`, `driver_main_screen.dart`, `terms_and_conditions_screen.dart`, `driver_register_screen.dart`).
+  - تحديث اختبارات الوحدة Jest وتمريرها بنجاح.
 - [ ] إضافة المميزات الجديدة المقررة للمنصة قبل الطرح في المتاجر.

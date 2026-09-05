@@ -15,7 +15,7 @@ export class OffersController {
   @ApiBearerAuth()
   @Roles(Role.DRIVER)
   @ApiOperation({
-    summary: 'تقديم عرض سعر من السائق لطلب مشوار (مع احتساب خصم عمولة 10% والتحذير من النقد)',
+    summary: 'تقديم عرض سعر من السائق لطلب مشوار (مع احتساب خصم عمولة 13.50% والتحذير من النقد)',
   })
   @ApiResponse({ status: 201, description: 'تم تقديم العرض بنجاح وإشعار العميل' })
   createOffer(@CurrentUser('id') driverUserId: string, @Body() dto: CreateOfferDto) {

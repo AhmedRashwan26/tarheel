@@ -14,7 +14,7 @@ export class DriversController {
   @Public()
   @Post('register')
   @ApiOperation({
-    summary: 'تسجيل سائق جديد مع رفع الوثائق وصور السيارة الـ 4 والموافقة على العمولة 10% وسياسة منع النقد',
+    summary: 'تسجيل سائق جديد مع رفع الوثائق وصور السيارة الـ 4 والموافقة على العمولة 13.50% وسياسة منع النقد',
   })
   @ApiResponse({ status: 201, description: 'تم تسجيل السائق بنجاح وهو بانتظار اعتماد الإدارة' })
   registerDriver(@Body() dto: RegisterDriverDto) {

@@ -279,9 +279,9 @@ model TripContract {
   vatAmount                Float            // قيمة الضريبة 15%
   totalPaidByClient        Float            // الإجمالي المدفوع شاملاً الضريبة
   
-  platformCommissionRate   Float            @default(10.0) // عمولة 10%
-  platformCommissionAmount Float            // قيمة العمولة 10%
-  driverEarnings           Float            // مستحقات السائق الصافية 90%
+  platformCommissionRate   Float            @default(13.5) // عمولة 13.50%
+  platformCommissionAmount Float            // قيمة العمولة 13.50%
+  driverEarnings           Float            // مستحقات السائق الصافية 86.50%
   
   paymentType              PaymentType      @default(MONTHLY)
   escrowStatus             EscrowStatus     @default(PENDING_PAYMENT)

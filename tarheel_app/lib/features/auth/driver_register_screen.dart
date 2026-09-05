@@ -91,7 +91,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
     if (!_agreeToAntiCashPolicy) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يجب الموافقة على شروط ترحيل وعمولة 10% وسياسة منع النقد للمتابعة'),
+          content: Text('يجب الموافقة على شروط ترحيل وعمولة 13.50% وسياسة منع النقد للمتابعة'),
           backgroundColor: AppColors.error,
         ),
       );

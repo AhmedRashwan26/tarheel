@@ -26,7 +26,7 @@ export class PaymentsController {
   @ApiBearerAuth()
   @Roles(Role.CLIENT, Role.ADMIN)
   @ApiOperation({
-    summary: 'تأكيد انتهاء مدة التوصيل، خصم عمولة ترحيل 10%، تحويل 90% للسائق، وطلب التقييم من العميل',
+    summary: 'تأكيد انتهاء مدة التوصيل، خصم عمولة ترحيل 13.50%، تحويل 86.50% للسائق، وطلب التقييم من العميل',
   })
   @ApiResponse({ status: 200, description: 'تم تحرير مستحقات السائق وطلب التقييم من العميل' })
   completeContractAndReleaseFunds(
