@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/api_endpoints.dart';
 import '../../providers/trip_provider.dart';
 import 'escrow_checkout_screen.dart';
 
@@ -272,6 +273,74 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
           ),
           const Divider(height: 24, color: AppColors.cardBorder),
 
+          // Front Car Photo Preview Card
+          GestureDetector(
+            onTap: () => _showVehiclePhotosDialog(context, vehicle, driverUser),
+            child: Container(
+              height: 155,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildVehicleImage(vehicle['photoFrontUrl']),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.65),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.directions_car_rounded, color: Colors.white, size: 13),
+                          SizedBox(width: 4),
+                          Text(
+                            'صورة واجهة السيارة',
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_rounded, color: Colors.white, size: 13),
+                          SizedBox(width: 4),
+                          Text(
+                            'معاينة كافة صور السيارة (5 صور)',
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Vehicle Specs
           Row(
             children: [
@@ -325,6 +394,150 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVehicleImage(String? rawUrl) {
+    if (rawUrl == null || rawUrl.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.directions_car_filled_rounded, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 6),
+            Text('صورة السيارة غير مرفوعة بعد', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+          ],
+        ),
+      );
+    }
+
+    final fullUrl = rawUrl.startsWith('http') ? rawUrl : '${ApiEndpoints.baseDomain}$rawUrl';
+
+    return Image.network(
+      fullUrl,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value: progress.expectedTotalBytes != null
+                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                : null,
+            strokeWidth: 2,
+            color: AppColors.primary,
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey.shade400),
+              const SizedBox(height: 4),
+              Text('صورة السيارة الأمامية', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showVehiclePhotosDialog(BuildContext context, Map<String, dynamic> vehicle, Map<String, dynamic> driverUser) {
+    final photos = [
+      {'title': 'الواجهة الأمامية', 'url': vehicle['photoFrontUrl'], 'icon': Icons.directions_car_rounded},
+      {'title': 'الواجهة الخلفية', 'url': vehicle['photoBackUrl'], 'icon': Icons.car_crash_rounded},
+      {'title': 'الجانب الأيمن', 'url': vehicle['photoRightUrl'], 'icon': Icons.swap_horiz_rounded},
+      {'title': 'الجانب الأيسر', 'url': vehicle['photoLeftUrl'], 'icon': Icons.swap_horiz_rounded},
+      {'title': 'المقصورة والفرش الداخلي', 'url': vehicle['photoInteriorUrl'], 'icon': Icons.airline_seat_recline_normal_rounded},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 45, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'معاينة سيارة الكابتن ${driverUser['fullName'] ?? ''}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      ),
+                      Text(
+                        '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''} ${vehicle['year'] ?? ''} (لوحة: ${vehicle['plateNumber'] ?? '---'})',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: photos.length,
+                itemBuilder: (context, index) {
+                  final item = photos[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.cardBorder),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Icon(item['icon'] as IconData, size: 18, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                          child: SizedBox(
+                            height: 200,
+                            child: _buildVehicleImage(item['url'] as String?),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

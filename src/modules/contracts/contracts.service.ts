@@ -121,15 +121,45 @@ export class ContractsService {
     });
 
     // Notify Driver via WebSocket and Database Notification
-    const driverNoticeMessage = `تنبيه مهم للسائق: تم قبول عرضك لمشوار (${offer.tripRequest.pickupAddress} إلى ${offer.tripRequest.dropoffAddress})! يجب التواجد في الموعد المحدد (${offer.tripRequest.preferredTime}) وموقع الانطلاق بدقة. قيمة المشوار الأساسية (${baseAmount} ر.س) - مستحقاتك بعد خصم 13.50% عمولة ترحيل هي (${driverEarnings} ر.س) سيتم تحويلها لحسابك البنكي (${offer.driverProfile.bankName} - ${offer.driverProfile.iban}) بعد انتهاء مدة التوصيل وتقييم العميل.`;
+    const clientName = result.client?.fullName || 'العميل';
+    const pickup = offer.tripRequest.pickupAddress;
+    const dropoff = offer.tripRequest.dropoffAddress;
+    const preferredTime = offer.tripRequest.preferredTime;
 
-    this.gateway.notifyDriverBidAccepted(offer.driverProfile.user.id, result);
+    const driverNoticeTitle = `🎉 مبارك! وافق العميل على عرضك السعري (${baseAmount} ر.س)`;
+    const driverNoticeMessage = `تهانينا كابتن! لقد وافق العميل ${clientName} على عرضك لمشوار من (${pickup}) إلى (${dropoff}) بقيمة (${baseAmount} ر.س).\n\n` +
+      `📌 توجيهات مهمة لرحلة مميزة:\n` +
+      `1️⃣ احترام مواعيد العمل: يرجى التواجد في الموعد المحدد بدقة (${preferredTime}) والالتزام التام بوقت العميل.\n` +
+      `2️⃣ نظافة السيارة: تأكد من نظافة المركبة داخلياً وخارجياً وتوفير بيئة مريحة ومكيفة للراكب.\n` +
+      `3️⃣ التعامل الأخلاقي والراقي: عامل العميل بأخلاق فاضلة ولباقة، فالتعامل الحسن يرفع تقييمك (5 نجوم) ويضمن لك الأولوية في استقبال عروض ومشاريع جديدة مستقبلاً.\n` +
+      `4️⃣ جدول العمل اليومي: تم إضافة هذا المشوار رسمياً إلى جدول عملك اليومي على منصة ترحيل.\n\n` +
+      `💰 مستحقاتك الصافية: ${driverEarnings} ر.س (بعد خصم 13.50% عمولة ترحيل) سيتم إيداعها بحسابك (${offer.driverProfile.bankName}) بعد إتمام الرحلة.`;
+
+    this.gateway.notifyDriverBidAccepted(offer.driverProfile.user.id, {
+      contract: result,
+      title: driverNoticeTitle,
+      message: driverNoticeMessage,
+      pickup,
+      dropoff,
+      baseAmount,
+      driverEarnings,
+      preferredTime,
+    });
+
     await this.notificationsService.createNotification(
       offer.driverProfile.user.id,
-      'تم قبول عرضك السعري!',
+      driverNoticeTitle,
       driverNoticeMessage,
       NotificationType.BID_ACCEPTED,
-      { contractId: result.id, tripId: offer.tripRequestId },
+      {
+        contractId: result.id,
+        tripId: offer.tripRequestId,
+        pickup,
+        dropoff,
+        baseAmount,
+        driverEarnings,
+        preferredTime,
+      },
     );
 
     return {

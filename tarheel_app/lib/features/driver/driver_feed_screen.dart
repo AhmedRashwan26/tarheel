@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/trip_provider.dart';
+import '../client/notifications_screen.dart';
 
 class DriverFeedScreen extends StatefulWidget {
   const DriverFeedScreen({super.key});
@@ -196,6 +197,17 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
             const Text('سوق طلبات ترحيل'),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            tooltip: 'الإشعارات والتنبيهات',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => tripProvider.fetchOpenTripsFeed(),

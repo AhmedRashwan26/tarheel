@@ -79,14 +79,44 @@ export class OffersService {
       },
     });
 
+    // Prepare enriched bid metadata with vehicle front photo & specs
+    const carPhotoFrontUrl = driverProfile.vehicle?.photoFrontUrl || null;
+    const carBrand = driverProfile.vehicle?.brand || 'سيارة';
+    const carModel = driverProfile.vehicle?.model || '';
+    const carYear = driverProfile.vehicle?.year || '';
+    const carFullName = `${carBrand} ${carModel} ${carYear}`.trim();
+
+    const notificationPayload = {
+      tripId: trip.id,
+      offerId: offer.id,
+      offerPrice: dto.offerPrice,
+      driverName: driverProfile.user.fullName,
+      driverRating: driverProfile.ratingAverage,
+      totalTrips: driverProfile.totalTripsCount,
+      carFullName,
+      carBrand,
+      carModel,
+      carYear,
+      carPlateNumber: driverProfile.vehicle?.plateNumber || '',
+      carPhotoFrontUrl,
+      isAirConditioned: driverProfile.vehicle?.isAirConditioned ?? true,
+      carCapacity: driverProfile.vehicle?.capacity || 4,
+      pickupAddress: trip.pickupAddress,
+      dropoffAddress: trip.dropoffAddress,
+    };
+
     // Notify client via websocket & database record
-    this.gateway.notifyClientNewBid(trip.clientId, offer);
+    this.gateway.notifyClientNewBid(trip.clientId, {
+      ...notificationPayload,
+      offer,
+    });
+
     await this.notificationsService.createNotification(
       trip.clientId,
-      'عرض سعر جديد لمشوارك',
-      `قدم السائق ${driverProfile.user.fullName} عرضاً بقيمة ${dto.offerPrice} ر.س لمشوارك`,
+      `🚗 تلقيت عرض سعر جديد بقيمة ${dto.offerPrice} ر.س!`,
+      `قدم الكابتن ${driverProfile.user.fullName} عرضاً بقيمة ${dto.offerPrice} ر.س بسيارة (${carFullName}) لمشوارك من ${trip.pickupAddress} إلى ${trip.dropoffAddress}. اضغط لمعاينة صورة السيارة وتفاصيل العرض.`,
       NotificationType.BID_RECEIVED,
-      { tripId: trip.id, offerId: offer.id, price: dto.offerPrice },
+      notificationPayload,
     );
 
     const platformFee = (dto.offerPrice * PLATFORM_CONSTANTS.COMMISSION_PERCENTAGE) / 100;

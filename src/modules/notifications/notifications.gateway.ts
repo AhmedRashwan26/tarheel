@@ -57,22 +57,38 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     }
   }
 
-  notifyClientNewBid(clientId: string, offer: any) {
+  notifyClientNewBid(clientId: string, payload: any) {
     if (this.server) {
+      const price = payload.offerPrice || payload.offer?.offerPrice || '';
+      const driverName = payload.driverName || payload.offer?.driverProfile?.user?.fullName || 'أحد السائقين';
       this.server.to(`user_${clientId}`).emit('new_bid_received', {
         event: 'NEW_BID_OFFER',
-        message: `تم تقديم عرض سعر جديد بقيمة ${offer.offerPrice} ر.س لمشوارك`,
-        offer,
+        title: `🚗 عرض سعر جديد: ${price} ر.س`,
+        message: `قدم الكابتن ${driverName} عرضاً بقيمة ${price} ر.س لمشوارك`,
+        ...payload,
       });
     }
   }
 
-  notifyDriverBidAccepted(driverUserId: string, contract: any) {
+  notifyDriverBidAccepted(driverUserId: string, payload: any) {
     if (this.server) {
+      const contract = payload.contract || payload;
+      const pickup = contract?.tripRequest?.pickupAddress || 'نقطة الانطلاق';
+      const dropoff = contract?.tripRequest?.dropoffAddress || 'نقطة الوصول';
+      const clientName = contract?.client?.fullName || 'العميل';
+
       this.server.to(`user_${driverUserId}`).emit('bid_accepted', {
         event: 'BID_ACCEPTED_ALERT',
-        message: 'تهانينا! قام العميل بقبول عرضك السعري. يرجى الالتزام بالموعد والمكان المحددين.',
+        title: '🎉 مبارك! وافق العميل على عرضك السعري',
+        message: `وافق العميل ${clientName} على عرضك لمشوار (${pickup} إلى ${dropoff}). تم إضافة المشوار رسمياً في جدول عملك اليومي.`,
+        guidelines: [
+          'احترام مواعيد عملك والالتزام بموعد المشوار بدقة',
+          'التأكد التام من نظافة السيارة وجاهزيتها التامة لاستقبال العميل',
+          'معاملة العميل بأخلاق حسنة ولباقة راقية لرفع تقييمك واستقبال عروض جديدة',
+          'تمت إضافة المشوار تلقائياً في جدول عملك اليومي على المنصة',
+        ],
         contract,
+        ...payload,
       });
     }
   }

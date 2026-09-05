@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/api_endpoints.dart';
+import '../../core/socket/socket_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
 import 'post_trip_screen.dart';
 import 'trip_offers_screen.dart';
+import 'notifications_screen.dart';
 import '../chat/chat_room_screen.dart';
 import '../support/support_hub_screen.dart';
 import '../profile/profile_screen.dart';
@@ -18,6 +22,7 @@ class ClientMainScreen extends StatefulWidget {
 
 class _ClientMainScreenState extends State<ClientMainScreen> {
   int _currentIndex = 0;
+  StreamSubscription? _bidSubscription;
 
   @override
   void initState() {
@@ -26,6 +31,206 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
       Provider.of<TripProvider>(context, listen: false).fetchMyTripRequests();
       Provider.of<TripProvider>(context, listen: false).fetchMyContracts();
     });
+
+    _bidSubscription = SocketService().bidStream.listen((data) {
+      if (mounted) {
+        Provider.of<TripProvider>(context, listen: false).fetchMyTripRequests();
+        _showNewBidBottomSheet(data);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bidSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _showNewBidBottomSheet(Map<String, dynamic> data) {
+    final offerPrice = data['offerPrice'] ?? data['offer']?['offerPrice'];
+    final tripId = data['tripId'] ?? data['offer']?['tripId'];
+    final carPhotoFrontUrl = data['carPhotoFrontUrl']?.toString();
+    final carFullName = data['carFullName'] ?? '';
+    final driverName = data['driverName'] ?? data['offer']?['driver']?['user']?['fullName'] ?? 'كابتن ترحيل';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 20,
+              offset: Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.local_offer_rounded, color: AppColors.accent, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'وصلك عرض سعر جديد لمشوارك! 🎉',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'من الكابتن $driverName',
+                        style: const TextStyle(fontSize: 13, color: Colors.white60),
+                      ),
+                    ],
+                  ),
+                ),
+                if (offerPrice != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.secondary),
+                    ),
+                    child: Text(
+                      '$offerPrice ر.س',
+                      style: const TextStyle(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Car front photo thumbnail
+            if (carPhotoFrontUrl != null && carPhotoFrontUrl.isNotEmpty) ...[
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  children: [
+                    Image.network(
+                      carPhotoFrontUrl.startsWith('http')
+                          ? carPhotoFrontUrl
+                          : '${ApiEndpoints.baseDomain}$carPhotoFrontUrl',
+                      height: 140,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 100,
+                        color: Colors.white10,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.directions_car_rounded, color: Colors.white38, size: 40),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.verified_rounded, color: AppColors.accent, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              'صورة المركبة الأمامية: $carFullName',
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: const BorderSide(color: Colors.white24),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('لاحقاً'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      if (tripId != null) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => TripOffersScreen(tripId: tripId.toString()),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.directions_car_filled_rounded),
+                    label: const Text('معاينة العرض والسيارة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -81,7 +286,12 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
+            tooltip: 'الإشعارات والتنبيهات',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -357,6 +567,17 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('مشاويري والعروض المستلمة'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            tooltip: 'الإشعارات والتنبيهات',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => tripProvider.fetchMyTripRequests(),
