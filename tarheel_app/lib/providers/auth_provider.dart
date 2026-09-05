@@ -24,6 +24,7 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isDriver => _userRole == 'DRIVER';
+  bool get isAdmin => _userRole == 'ADMIN' || _user?['role'] == 'ADMIN';
 
   void setRole(String role) {
     _userRole = role;
@@ -125,7 +126,11 @@ class AuthProvider extends ChangeNotifier {
       final data = response.data['data'];
       _token = data['accessToken'];
       _user = data['user'];
-      _userRole = (targetRole == 'DRIVER' || _user?['role'] == 'DRIVER') ? 'DRIVER' : (_user?['role'] ?? targetRole);
+      if (_user?['role'] == 'ADMIN') {
+        _userRole = 'ADMIN';
+      } else {
+        _userRole = (targetRole == 'DRIVER' || _user?['role'] == 'DRIVER') ? 'DRIVER' : (_user?['role'] ?? targetRole);
+      }
 
       if (_token != null) {
         await StorageService.saveToken(_token!);

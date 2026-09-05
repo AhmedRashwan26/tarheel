@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../admin/admin_dashboard_screen.dart';
 import '../auth/role_selection_screen.dart';
 import '../client/client_main_screen.dart';
 import '../driver/driver_main_screen.dart';
@@ -49,7 +50,11 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (auth.isAuthenticated) {
-      if (auth.isDriver) {
+      if (auth.isAdmin) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+      } else if (auth.isDriver) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const DriverMainScreen()),
         );

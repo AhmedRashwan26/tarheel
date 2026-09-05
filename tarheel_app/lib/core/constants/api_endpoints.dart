@@ -78,4 +78,28 @@ class ApiEndpoints {
   static String get userProfile => '$baseUrl/users/profile';
   static String get walletTransactions => '$baseUrl/users/wallet/transactions';
   static String get userNotifications => '$baseUrl/users/notifications';
+
+  // Admin Dashboard
+  static String get adminFinancialOverview => '$baseUrl/admin/financial-overview';
+  static String get adminPendingDrivers => '$baseUrl/admin/drivers/pending';
+  static String get adminAllDrivers => '$baseUrl/admin/drivers';
+  static String adminDriverDetails(String id) => '$baseUrl/admin/drivers/$id';
+  static String adminApproveDriver(String id) => '$baseUrl/admin/drivers/$id/approve';
+  static String adminRejectDriver(String id) => '$baseUrl/admin/drivers/$id/reject';
+  static String adminSuspendDriver(String id) => '$baseUrl/admin/drivers/$id/suspend';
+  static String adminUnsuspendDriver(String id) => '$baseUrl/admin/drivers/$id/unsuspend';
+  static String get adminDisputes => '$baseUrl/admin/disputes';
+  static String adminResolveDispute(String contractId) => '$baseUrl/admin/disputes/$contractId/resolve';
+  static String get adminChats => '$baseUrl/admin/chats';
+  static String adminChatMessages(String contractId) => '$baseUrl/admin/chats/$contractId';
+  static String get adminBroadcastNotification => '$baseUrl/admin/notifications/broadcast';
+  static String get adminSupportTickets => '$baseUrl/support/admin/tickets';
+  static String adminUpdateTicketStatus(String id) => '$baseUrl/support/admin/tickets/$id/status';
+  static String adminUsersPerformance({String? role, String? search}) {
+    String q = '';
+    if (role != null) q += 'role=$role&';
+    if (search != null && search.isNotEmpty) q += 'search=${Uri.encodeComponent(search)}&';
+    return '$baseUrl/admin/users/financial-performance?$q';
+  }
+  static String adminUserActivityHistory(String userId) => '$baseUrl/admin/users/$userId/activity-history';
 }

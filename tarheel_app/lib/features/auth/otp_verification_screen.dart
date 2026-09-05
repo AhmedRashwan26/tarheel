@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../admin/admin_dashboard_screen.dart';
 import '../client/client_main_screen.dart';
 import '../driver/driver_main_screen.dart';
 
@@ -55,19 +56,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _isLoading = false);
 
     if (success && mounted) {
-      final isDriverMode = (targetRole == 'DRIVER') || (auth.userRole == 'DRIVER') || auth.isDriver;
-      if (isDriverMode) {
-        auth.setRole('DRIVER');
+      if (auth.isAdmin) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const DriverMainScreen()),
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
           (route) => false,
         );
       } else {
-        auth.setRole('CLIENT');
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const ClientMainScreen()),
-          (route) => false,
-        );
+        final isDriverMode = (targetRole == 'DRIVER') || (auth.userRole == 'DRIVER') || auth.isDriver;
+        if (isDriverMode) {
+          auth.setRole('DRIVER');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const DriverMainScreen()),
+            (route) => false,
+          );
+        } else {
+          auth.setRole('CLIENT');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const ClientMainScreen()),
+            (route) => false,
+          );
+        }
       }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
