@@ -87,6 +87,8 @@ export class ChatService {
         contractId: dto.contractId,
         tripRequestId: dto.tripRequestId,
         senderId,
+        senderName: message.sender.fullName,
+        senderRole: message.sender.role,
         messageType: dto.messageType,
         latitude: dto.latitude,
         longitude: dto.longitude,
