@@ -12,12 +12,55 @@ class DriverFeedScreen extends StatefulWidget {
 }
 
 class _DriverFeedScreenState extends State<DriverFeedScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedRegionChip = 'الكل';
+
+  final List<String> _popularRegions = [
+    'الكل',
+    'الصحافة',
+    'الياسمين',
+    'الملقا',
+    'العليا',
+    'KAFD',
+    'النرجس',
+    'الدرعية',
+    'الروضة',
+  ];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TripProvider>(context, listen: false).fetchOpenTripsFeed();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      if (query.trim().isEmpty) {
+        _selectedRegionChip = 'الكل';
+      }
+    });
+    Provider.of<TripProvider>(context, listen: false).fetchOpenTripsFeed(query.trim());
+  }
+
+  void _onSelectChip(String region) {
+    setState(() {
+      _selectedRegionChip = region;
+      if (region == 'الكل') {
+        _searchController.clear();
+      } else {
+        _searchController.text = region;
+      }
+    });
+    Provider.of<TripProvider>(context, listen: false)
+        .fetchOpenTripsFeed(region == 'الكل' ? null : region);
   }
 
   void _showSubmitBidDialog(Map<String, dynamic> trip) {
@@ -209,22 +252,222 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => tripProvider.fetchOpenTripsFeed(),
-        child: tripProvider.isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.accent))
-            : tripProvider.openTripsFeed.isEmpty
-                ? const Center(
-                    child: Text('لا توجد طلبات مشاوير جديدة متاحة حالياً'))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: tripProvider.openTripsFeed.length,
-                    itemBuilder: (context, index) {
-                      final trip = tripProvider.openTripsFeed[index];
-                      return _buildFeedTripCard(trip);
-                    },
+      body: Column(
+        children: [
+          // Search & Region Filter Header Card
+          _buildSearchAndFilterHeader(),
+
+          // Feed List
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => tripProvider.fetchOpenTripsFeed(_searchController.text.trim()),
+              child: tripProvider.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.accent))
+                  : tripProvider.openTripsFeed.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          itemCount: tripProvider.openTripsFeed.length,
+                          itemBuilder: (context, index) {
+                            final trip = tripProvider.openTripsFeed[index];
+                            return _buildFeedTripCard(trip);
+                          },
+                        ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilterHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Search Input Field
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _searchController.text.isNotEmpty
+                    ? AppColors.primary.withValues(alpha: 0.5)
+                    : AppColors.cardBorder,
+                width: 1.2,
+              ),
+            ),
+            child: TextField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onChanged: _onSearchChanged,
+              onSubmitted: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'ابحث باسم المنطقة أو الحي (مثال: الصحافة، العليا...)',
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : const Icon(Icons.tune_rounded, size: 20, color: AppColors.accent),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Quick Filter Region Chips
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _popularRegions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final region = _popularRegions[index];
+                final isSelected = _selectedRegionChip == region;
+                return ChoiceChip(
+                  label: Text(
+                    region,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                    ),
                   ),
+                  selected: isSelected,
+                  selectedColor: AppColors.primary,
+                  backgroundColor: AppColors.background,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                    ),
+                  ),
+                  onSelected: (_) => _onSelectChip(region),
+                );
+              },
+            ),
+          ),
+
+          if (_searchController.text.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, size: 14, color: AppColors.accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      'تصفية طلبات: "${_searchController.text.trim()}"',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                    _onSelectChip('الكل');
+                  },
+                  child: const Text(
+                    'مسح التصفية ✕',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final query = _searchController.text.trim();
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 40),
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                query.isNotEmpty ? Icons.location_off_rounded : Icons.explore_off_rounded,
+                size: 54,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              query.isNotEmpty
+                  ? 'لا توجد طلبات في "$query" حالياً'
+                  : 'لا توجد طلبات مشاوير جديدة متاحة حالياً',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              query.isNotEmpty
+                  ? 'جرب البحث عن حي مجاور أو إزالة التصفية لمشاهدة كافة الفرص المتاحة بالسوق.'
+                  : 'سيتم إشعارك فور قيام العملاء بنشر طلبات مشاوير جديدة تناسب مساراتك.',
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+            if (query.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _searchController.clear();
+                  _onSelectChip('الكل');
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('عرض كافة طلبات السوق'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

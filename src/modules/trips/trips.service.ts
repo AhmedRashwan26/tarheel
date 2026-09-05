@@ -51,12 +51,27 @@ export class TripsService {
     };
   }
 
-  async getOpenTripsForDrivers(query?: { capacity?: number; city?: string }) {
+  async getOpenTripsForDrivers(query?: { capacity?: number; city?: string; search?: string; region?: string }) {
+    const where: any = {
+      status: TripStatus.OPEN_FOR_BIDS,
+    };
+
+    if (query?.capacity) {
+      where.passengersCount = { lte: Number(query.capacity) };
+    }
+
+    const search = (query?.search || query?.region || query?.city)?.trim();
+    if (search) {
+      where.OR = [
+        { pickupAddress: { contains: search, mode: 'insensitive' } },
+        { dropoffAddress: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     return this.prisma.tripRequest.findMany({
-      where: {
-        status: TripStatus.OPEN_FOR_BIDS,
-        ...(query?.capacity ? { passengersCount: { lte: Number(query.capacity) } } : {}),
-      },
+      where,
       include: {
         client: {
           select: { id: true, fullName: true, avatarUrl: true },

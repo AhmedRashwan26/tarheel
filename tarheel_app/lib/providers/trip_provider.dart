@@ -91,61 +91,75 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchOpenTripsFeed() async {
+  Future<void> fetchOpenTripsFeed([String? search]) async {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await _api.get(ApiEndpoints.tripsFeed);
+      final endpoint = (search != null && search.trim().isNotEmpty)
+          ? ApiEndpoints.tripsFeedWithFilter(search: search.trim())
+          : ApiEndpoints.tripsFeed;
+      final response = await _api.get(endpoint);
       _openTripsFeed = response.data['data'] ?? [];
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      if (_openTripsFeed.isEmpty) {
-        _openTripsFeed = [
-          {
-            'id': 'feed_1',
-            'title': 'مشوار دوام يومي - حي الصحافة إلى العليا',
-            'pickupAddress': 'حي الصحافة، الرياض',
-            'dropoffAddress': 'طريق الملك فهد، العليا',
-            'departureTime': '08:00 AM',
-            'isRoundTrip': true,
-            'returnTime': '04:30 PM',
-            'frequency': 'MONTHLY',
-            'seatsCount': 2,
-            'notes': 'سآخذ صديقي معي في طريقي ونحتاج التزام تام بوقت الانطلاق 08:00 صباحاً لتجنب الزحام.',
-            'client': {'fullName': 'سلطان القحطاني'},
-            'createdAt': DateTime.now().toIso8601String(),
-          },
-          {
-            'id': 'feed_2',
-            'title': 'توصيل طلاب مدرسة (ذهاب وعودة)',
-            'pickupAddress': 'حي الياسمين، الرياض',
-            'dropoffAddress': 'مدارس الرياض الأهلية، حي النموذجية',
-            'departureTime': '06:45 AM',
-            'isRoundTrip': true,
-            'returnTime': '01:30 PM',
-            'frequency': 'WEEKLY',
-            'seatsCount': 3,
-            'notes': 'توصيل أطفال صغار - يرجى القيادة بهدوء تام وتشغيل تكييف معتدل.',
-            'client': {'fullName': 'عبدالعزيز العتيبي'},
-            'createdAt': DateTime.now().toIso8601String(),
-          },
-          {
-            'id': 'feed_3',
-            'title': 'مشوار مسائي - حي الملقا إلى مركز KAFD',
-            'pickupAddress': 'حي الملقا، طريق أنس بن مالك',
-            'dropoffAddress': 'مركز الملك عبدالله المالي (KAFD)',
-            'departureTime': '08:30 AM',
-            'isRoundTrip': false,
-            'returnTime': null,
-            'frequency': 'DAILY',
-            'seatsCount': 1,
-            'notes': 'سأتوقف قليلاً عند البقالة في الطريق قبل الدخول للمركز المالي.',
-            'client': {'fullName': 'م. عبدالمحسن الغامدي'},
-            'createdAt': DateTime.now().toIso8601String(),
-          }
-        ];
+      final allMock = [
+        {
+          'id': 'feed_1',
+          'title': 'مشوار دوام يومي - حي الصحافة إلى العليا',
+          'pickupAddress': 'حي الصحافة، الرياض',
+          'dropoffAddress': 'طريق الملك فهد، العليا',
+          'departureTime': '08:00 AM',
+          'isRoundTrip': true,
+          'returnTime': '04:30 PM',
+          'frequency': 'MONTHLY',
+          'seatsCount': 2,
+          'notes': 'سآخذ صديقي معي في طريقي ونحتاج التزام تام بوقت الانطلاق 08:00 صباحاً لتجنب الزحام.',
+          'client': {'fullName': 'سلطان القحطاني'},
+          'createdAt': DateTime.now().toIso8601String(),
+        },
+        {
+          'id': 'feed_2',
+          'title': 'توصيل طلاب مدرسة (ذهاب وعودة)',
+          'pickupAddress': 'حي الياسمين، الرياض',
+          'dropoffAddress': 'مدارس الرياض الأهلية، حي النموذجية',
+          'departureTime': '06:45 AM',
+          'isRoundTrip': true,
+          'returnTime': '01:30 PM',
+          'frequency': 'WEEKLY',
+          'seatsCount': 3,
+          'notes': 'توصيل أطفال صغار - يرجى القيادة بهدوء تام وتشغيل تكييف معتدل.',
+          'client': {'fullName': 'عبدالعزيز العتيبي'},
+          'createdAt': DateTime.now().toIso8601String(),
+        },
+        {
+          'id': 'feed_3',
+          'title': 'مشوار مسائي - حي الملقا إلى مركز KAFD',
+          'pickupAddress': 'حي الملقا، طريق أنس بن مالك',
+          'dropoffAddress': 'مركز الملك عبدالله المالي (KAFD)',
+          'departureTime': '08:30 AM',
+          'isRoundTrip': false,
+          'returnTime': null,
+          'frequency': 'DAILY',
+          'seatsCount': 1,
+          'notes': 'سأتوقف قليلاً عند البقالة في الطريق قبل الدخول للمركز المالي.',
+          'client': {'fullName': 'م. عبدالمحسن الغامدي'},
+          'createdAt': DateTime.now().toIso8601String(),
+        }
+      ];
+
+      if (search != null && search.trim().isNotEmpty) {
+        final query = search.trim().toLowerCase();
+        _openTripsFeed = allMock.where((t) {
+          final title = (t['title'] ?? '').toString().toLowerCase();
+          final pickup = (t['pickupAddress'] ?? '').toString().toLowerCase();
+          final dropoff = (t['dropoffAddress'] ?? '').toString().toLowerCase();
+          final notes = (t['notes'] ?? '').toString().toLowerCase();
+          return title.contains(query) || pickup.contains(query) || dropoff.contains(query) || notes.contains(query);
+        }).toList();
+      } else {
+        _openTripsFeed = allMock;
       }
       notifyListeners();
     }

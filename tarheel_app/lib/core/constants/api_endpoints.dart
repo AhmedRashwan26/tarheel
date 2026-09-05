@@ -36,6 +36,12 @@ class ApiEndpoints {
   // Trips
   static String get createTrip => '$baseUrl/trips';
   static String get tripsFeed => '$baseUrl/trips/feed';
+  static String tripsFeedWithFilter({String? search, int? capacity}) {
+    String q = '';
+    if (search != null && search.trim().isNotEmpty) q += 'search=${Uri.encodeComponent(search.trim())}&';
+    if (capacity != null) q += 'capacity=$capacity&';
+    return q.isNotEmpty ? '$baseUrl/trips/feed?$q' : '$baseUrl/trips/feed';
+  }
   static String get myTripRequests => '$baseUrl/trips/my-requests';
   static String tripDetails(String id) => '$baseUrl/trips/$id';
   static String cancelTrip(String id) => '$baseUrl/trips/$id/cancel';

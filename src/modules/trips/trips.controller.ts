@@ -25,10 +25,14 @@ export class TripsController {
   @Get('feed')
   @ApiBearerAuth()
   @Roles(Role.DRIVER)
-  @ApiOperation({ summary: 'تصفح طلبات المشاوير المفتوحة والمتاحة للسائقين لتقديم عروض الأسعار' })
+  @ApiOperation({ summary: 'تصفح طلبات المشاوير المفتوحة والمتاحة للسائقين مع إمكانية البحث والفرز بحسب المنطقة أو الحي' })
   @ApiQuery({ name: 'capacity', required: false, type: Number, description: 'فلترة بعدد المقاعد' })
-  getOpenTripsForDrivers(@Query('capacity') capacity?: number) {
-    return this.tripsService.getOpenTripsForDrivers({ capacity });
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'البحث باسم المنطقة أو الحي أو الشارع' })
+  getOpenTripsForDrivers(
+    @Query('capacity') capacity?: number,
+    @Query('search') search?: string,
+  ) {
+    return this.tripsService.getOpenTripsForDrivers({ capacity, search });
   }
 
   @Get('my-requests')
