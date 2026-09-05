@@ -6,6 +6,8 @@ import '../../providers/auth_provider.dart';
 import '../support/support_hub_screen.dart';
 import '../auth/role_selection_screen.dart';
 
+import '../../core/services/upload_service.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -13,18 +15,46 @@ class ProfileScreen extends StatelessWidget {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'png', 'jpeg'],
+        allowedExtensions: ['jpg', 'png', 'jpeg', 'webp'],
+        withData: true,
       );
 
       if (result != null && result.files.isNotEmpty) {
-        final fileName = result.files.first.name;
-        final photoUrl = '/uploads/$fileName';
+        final file = result.files.first;
         if (context.mounted) {
-          await context.read<AuthProvider>().updateProfileAvatar(photoUrl);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                  SizedBox(width: 12),
+                  Text('جاري رفع الصورة الشخصية إلى الخادم...'),
+                ],
+              ),
+              duration: Duration(seconds: 15),
+            ),
+          );
+        }
+
+        final uploadRes = await UploadService().uploadFile(file);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (uploadRes.success && uploadRes.url != null) {
+          if (!context.mounted) return;
+          await context.read<AuthProvider>().updateProfileAvatar(uploadRes.url!);
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('🎉 تم تحديث الصورة الشخصية بنجاح: $fileName'),
+              content: Text('🎉 تم رفع وتحديث الصورة الشخصية بنجاح: ${file.name}'),
               backgroundColor: AppColors.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع الصورة الشخصية'),
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -101,12 +131,22 @@ class ProfileScreen extends StatelessWidget {
                             backgroundColor: AppColors.surface,
                             child: hasAvatar
                                 ? ClipOval(
-                                    child: Image.asset(
-                                      'assets/images/logo.png',
+                                    child: Image.network(
+                                      UploadService.formatUrl(avatarUrl),
                                       width: 92,
                                       height: 92,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 48, color: AppColors.primary),
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   )
                                 : Text(

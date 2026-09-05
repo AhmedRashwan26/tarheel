@@ -35,4 +35,22 @@ export class UsersService {
       take: 50,
     });
   }
+
+  async updateProfile(userId: string, data: { avatarUrl?: string; fullName?: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('المستخدم غير موجود');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+        ...(data.fullName !== undefined && { fullName: data.fullName }),
+      },
+      include: {
+        driverProfile: { include: { vehicle: true } },
+      },
+    });
+  }
 }

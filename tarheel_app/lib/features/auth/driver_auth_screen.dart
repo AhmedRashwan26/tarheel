@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/upload_service.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
 import '../terms/terms_and_conditions_screen.dart';
@@ -29,15 +30,22 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   final _phoneController = TextEditingController();
   final _nationalIdController = TextEditingController();
 
-  // Document Uploads
-  String _personalPhotoUrl = '/uploads/demo_driver_face.jpg';
-  String? _personalPhotoFileName = 'صورة_الكابتن_الشخصية.jpg';
+  // Document Uploads & URLs
+  String? _personalPhotoUrl;
+  String? _personalPhotoFileName;
+  bool _isUploadingPersonal = false;
 
-  String _idCardPhotoUrl = '/uploads/demo_absher_id.jpg';
-  String? _idCardFileName = 'صورة_الهوية_من_أبشر.jpg';
+  String? _idCardPhotoUrl;
+  String? _idCardFileName;
+  bool _isUploadingIdCard = false;
 
-  String _licenseUrl = '/uploads/demo_license.jpg';
-  String? _licenseFileName = 'صورة_رخصة_القيادة_والسير.jpg';
+  String? _licenseUrl;
+  String? _licenseFileName;
+  bool _isUploadingLicense = false;
+
+  String? _vehicleRegUrl;
+  String? _vehicleRegFileName;
+  bool _isUploadingVehicleReg = false;
 
   // Vehicle
   final _brandController = TextEditingController(text: 'تويوتا');
@@ -47,18 +55,34 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
   int _capacity = 4;
   bool _isAirConditioned = true;
 
-  // 4 Angle Photos
-  final String _photoFrontUrl = '/uploads/demo_car_front.jpg';
-  final String _photoBackUrl = '/uploads/demo_car_back.jpg';
-  final String _photoRightUrl = '/uploads/demo_car_right.jpg';
-  final String _photoLeftUrl = '/uploads/demo_car_left.jpg';
+  // 5 Angle Photos
+  String? _photoFrontUrl;
+  String? _photoFrontFileName;
+  bool _isUploadingFront = false;
+
+  String? _photoBackUrl;
+  String? _photoBackFileName;
+  bool _isUploadingBack = false;
+
+  String? _photoRightUrl;
+  String? _photoRightFileName;
+  bool _isUploadingRight = false;
+
+  String? _photoLeftUrl;
+  String? _photoLeftFileName;
+  bool _isUploadingLeft = false;
+
+  String? _photoInteriorUrl;
+  String? _photoInteriorFileName;
+  bool _isUploadingInterior = false;
 
   // Bank Details
   final _bankNameController = TextEditingController(text: 'مصرف الراجحي');
   final _ibanController = TextEditingController(text: 'SA0380000000608010167519');
   final _accountHolderController = TextEditingController();
-  String _bankCertificatePdfUrl = '/uploads/demo_iban_cert.pdf';
-  String? _selectedPdfFileName = 'شهادة_الآيبان_البنكي.pdf';
+  String? _bankCertificatePdfUrl;
+  String? _selectedPdfFileName;
+  bool _isUploadingBankPdf = false;
 
   // Agreement & Loading
   bool _agreeToTerms = false;
@@ -126,20 +150,39 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'png', 'jpeg'],
+        allowedExtensions: ['jpg', 'png', 'jpeg', 'webp'],
+        withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _personalPhotoFileName = result.files.first.name;
-          _personalPhotoUrl = '/uploads/${result.files.first.name}';
-        });
-        if (mounted) {
+        final file = result.files.first;
+        setState(() => _isUploadingPersonal = true);
+        final uploadRes = await UploadService().uploadFile(file);
+        setState(() => _isUploadingPersonal = false);
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            _personalPhotoFileName = file.name;
+            _personalPhotoUrl = uploadRes.url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع الصورة الشخصية بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم إرفاق الصورة الشخصية للكابتن: $_personalPhotoFileName')),
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع الصورة الشخصية'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
     } catch (e) {
+      setState(() => _isUploadingPersonal = false);
       debugPrint('Personal photo picker error: $e');
     }
   }
@@ -149,19 +192,38 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+        withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _idCardFileName = result.files.first.name;
-          _idCardPhotoUrl = '/uploads/${result.files.first.name}';
-        });
-        if (mounted) {
+        final file = result.files.first;
+        setState(() => _isUploadingIdCard = true);
+        final uploadRes = await UploadService().uploadFile(file);
+        setState(() => _isUploadingIdCard = false);
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            _idCardFileName = file.name;
+            _idCardPhotoUrl = uploadRes.url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع صورة الهوية الوطنية بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم إرفاق صورة الهوية من أبشر: $_idCardFileName')),
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع صورة الهوية'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
     } catch (e) {
+      setState(() => _isUploadingIdCard = false);
       debugPrint('ID file picker error: $e');
     }
   }
@@ -171,20 +233,144 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+        withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _licenseFileName = result.files.first.name;
-          _licenseUrl = '/uploads/${result.files.first.name}';
-        });
-        if (mounted) {
+        final file = result.files.first;
+        setState(() => _isUploadingLicense = true);
+        final uploadRes = await UploadService().uploadFile(file);
+        setState(() => _isUploadingLicense = false);
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            _licenseFileName = file.name;
+            _licenseUrl = uploadRes.url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع صورة رخصة القيادة بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم إرفاق صورة رخصة السير: $_licenseFileName')),
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع رخصة القيادة'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
     } catch (e) {
+      setState(() => _isUploadingLicense = false);
       debugPrint('License file picker error: $e');
+    }
+  }
+
+  Future<void> _pickVehicleRegFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() => _isUploadingVehicleReg = true);
+        final uploadRes = await UploadService().uploadFile(file);
+        setState(() => _isUploadingVehicleReg = false);
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            _vehicleRegFileName = file.name;
+            _vehicleRegUrl = uploadRes.url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع استمارة سير المركبة بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع استمارة المركبة'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isUploadingVehicleReg = false);
+      debugPrint('Vehicle reg picker error: $e');
+    }
+  }
+
+  Future<void> _pickVehicleAnglePhoto(String angle) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'png', 'jpeg', 'webp'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          if (angle == 'front') _isUploadingFront = true;
+          if (angle == 'back') _isUploadingBack = true;
+          if (angle == 'right') _isUploadingRight = true;
+          if (angle == 'left') _isUploadingLeft = true;
+          if (angle == 'interior') _isUploadingInterior = true;
+        });
+
+        final uploadRes = await UploadService().uploadFile(file);
+
+        setState(() {
+          if (angle == 'front') _isUploadingFront = false;
+          if (angle == 'back') _isUploadingBack = false;
+          if (angle == 'right') _isUploadingRight = false;
+          if (angle == 'left') _isUploadingLeft = false;
+          if (angle == 'interior') _isUploadingInterior = false;
+        });
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            if (angle == 'front') { _photoFrontUrl = uploadRes.url; _photoFrontFileName = file.name; }
+            if (angle == 'back') { _photoBackUrl = uploadRes.url; _photoBackFileName = file.name; }
+            if (angle == 'right') { _photoRightUrl = uploadRes.url; _photoRightFileName = file.name; }
+            if (angle == 'left') { _photoLeftUrl = uploadRes.url; _photoLeftFileName = file.name; }
+            if (angle == 'interior') { _photoInteriorUrl = uploadRes.url; _photoInteriorFileName = file.name; }
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع صورة السيارة بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع صورة السيارة'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingFront = false;
+        _isUploadingBack = false;
+        _isUploadingRight = false;
+        _isUploadingLeft = false;
+        _isUploadingInterior = false;
+      });
+      debugPrint('Vehicle angle photo error: $e');
     }
   }
 
@@ -192,28 +378,47 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'png'],
+        allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+        withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _selectedPdfFileName = result.files.first.name;
-          _bankCertificatePdfUrl = '/uploads/${result.files.first.name}';
-        });
-        if (mounted) {
+        final file = result.files.first;
+        setState(() => _isUploadingBankPdf = true);
+        final uploadRes = await UploadService().uploadFile(file);
+        setState(() => _isUploadingBankPdf = false);
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            _selectedPdfFileName = file.name;
+            _bankCertificatePdfUrl = uploadRes.url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع إثبات الحساب البنكي بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم إرفاق: $_selectedPdfFileName')),
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع الملف'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
     } catch (e) {
-      debugPrint('File picker error: $e');
+      setState(() => _isUploadingBankPdf = false);
+      debugPrint('Bank cert picker error: $e');
     }
   }
 
   Future<void> _handleRegisterDriver() async {
     if (!_registerFormKey.currentState!.validate()) return;
 
-    if (_personalPhotoFileName == null) {
+    if (_personalPhotoUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('الصورة الشخصية للكابتن إلزامية ومطلوبة للتحقق من هوية السائق لدى الركاب'),
@@ -223,20 +428,30 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       return;
     }
 
-    if (_idCardFileName == null) {
+    if (_idCardPhotoUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى إرفاق صورة الهوية الوطنية من أبشر'),
+          content: Text('يرجى رفع صورة الهوية الوطنية من أبشر'),
           backgroundColor: AppColors.error,
         ),
       );
       return;
     }
 
-    if (_licenseFileName == null) {
+    if (_licenseUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى إرفاق صورة رخصة السير والقيادة'),
+          content: Text('يرجى رفع صورة رخصة القيادة'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_bankCertificatePdfUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى إرفاق شهادة الآيبان البنكي أو إثبات الحساب PDF'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -260,20 +475,21 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
       'fullName': _fullNameController.text.trim(),
       'nationalId': _nationalIdController.text.trim(),
       'profilePictureUrl': _personalPhotoUrl,
+      'avatarUrl': _personalPhotoUrl,
       'idCardPhotoUrl': _idCardPhotoUrl,
       'driverLicenseUrl': _licenseUrl,
-      'vehicleRegistrationUrl': _licenseUrl,
+      'vehicleRegistrationUrl': _vehicleRegUrl ?? _licenseUrl,
       'vehicleBrand': _brandController.text.trim(),
       'vehicleModel': _modelController.text.trim(),
       'vehicleYear': int.tryParse(_yearController.text) ?? 2024,
       'plateNumber': _plateController.text.trim(),
       'capacity': _capacity,
       'isAirConditioned': _isAirConditioned,
-      'photoFrontUrl': _photoFrontUrl,
-      'photoBackUrl': _photoBackUrl,
-      'photoRightUrl': _photoRightUrl,
-      'photoLeftUrl': _photoLeftUrl,
-      'photoInteriorUrl': '/uploads/demo_interior.jpg',
+      'photoFrontUrl': _photoFrontUrl ?? _licenseUrl,
+      'photoBackUrl': _photoBackUrl ?? _photoFrontUrl ?? _licenseUrl,
+      'photoRightUrl': _photoRightUrl ?? _photoFrontUrl ?? _licenseUrl,
+      'photoLeftUrl': _photoLeftUrl ?? _photoFrontUrl ?? _licenseUrl,
+      'photoInteriorUrl': _photoInteriorUrl ?? _photoFrontUrl ?? _licenseUrl,
       'bankName': _bankNameController.text.trim(),
       'iban': _ibanController.text.trim(),
       'bankAccountHolderName': _accountHolderController.text.trim().isNotEmpty
@@ -516,26 +732,30 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
 
           // 1. Personal Face Photo Upload Button (Mandatory for drivers)
           OutlinedButton.icon(
-            onPressed: _pickPersonalPhotoFile,
+            onPressed: _isUploadingPersonal ? null : _pickPersonalPhotoFile,
             style: OutlinedButton.styleFrom(
               side: BorderSide(
-                color: _personalPhotoFileName != null ? AppColors.success : AppColors.accent,
+                color: _personalPhotoUrl != null ? AppColors.success : AppColors.accent,
                 width: 1.5,
               ),
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             ),
-            icon: Icon(
-              _personalPhotoFileName != null ? Icons.check_circle_rounded : Icons.face_rounded,
-              color: _personalPhotoFileName != null ? AppColors.success : AppColors.accent,
-            ),
+            icon: _isUploadingPersonal
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(
+                    _personalPhotoUrl != null ? Icons.check_circle_rounded : Icons.face_rounded,
+                    color: _personalPhotoUrl != null ? AppColors.success : AppColors.accent,
+                  ),
             label: Text(
-              _personalPhotoFileName != null
-                  ? 'تم إرفاق: $_personalPhotoFileName'
-                  : 'رفع الصورة الشخصية للكابتن (إجباري ومطلوب للتحقق)',
+              _isUploadingPersonal
+                  ? 'جاري رفع الصورة الشخصية...'
+                  : (_personalPhotoFileName != null
+                      ? 'تم رفع الصورة الشخصية: $_personalPhotoFileName ✅'
+                      : 'رفع الصورة الشخصية للكابتن (إجباري ومطلوب للتحقق)'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: _personalPhotoFileName != null ? AppColors.success : AppColors.accent,
+                color: _personalPhotoUrl != null ? AppColors.success : AppColors.accent,
               ),
             ),
           ),
@@ -543,26 +763,30 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
 
           // 2. Absher ID Upload Button
           OutlinedButton.icon(
-            onPressed: _pickIdCardFile,
+            onPressed: _isUploadingIdCard ? null : _pickIdCardFile,
             style: OutlinedButton.styleFrom(
               side: BorderSide(
-                color: _idCardFileName != null ? AppColors.success : AppColors.primary,
+                color: _idCardPhotoUrl != null ? AppColors.success : AppColors.primary,
                 width: 1.5,
               ),
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             ),
-            icon: Icon(
-              _idCardFileName != null ? Icons.check_circle_rounded : Icons.camera_front_rounded,
-              color: _idCardFileName != null ? AppColors.success : AppColors.primary,
-            ),
+            icon: _isUploadingIdCard
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(
+                    _idCardPhotoUrl != null ? Icons.check_circle_rounded : Icons.camera_front_rounded,
+                    color: _idCardPhotoUrl != null ? AppColors.success : AppColors.primary,
+                  ),
             label: Text(
-              _idCardFileName != null
-                  ? 'تم إرفاق: $_idCardFileName'
-                  : 'رفع صورة الهوية الوطنية من تطبيق أبشر (مطلوب)',
+              _isUploadingIdCard
+                  ? 'جاري رفع الهوية الوطنية...'
+                  : (_idCardFileName != null
+                      ? 'تم رفع الهوية: $_idCardFileName ✅'
+                      : 'رفع صورة الهوية الوطنية من تطبيق أبشر (مطلوب)'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: _idCardFileName != null ? AppColors.success : AppColors.primary,
+                color: _idCardPhotoUrl != null ? AppColors.success : AppColors.primary,
               ),
             ),
           ),
@@ -646,50 +870,126 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
           ),
 
           const SizedBox(height: 16),
-          _buildSectionHeader('3. صورة رخصة السير وصور السيارة الأربعة', Icons.photo_library_rounded),
+          _buildSectionHeader('3. رخص القيادة وسير المركبة وصور السيارة الـ 5', Icons.photo_library_rounded),
           const SizedBox(height: 10),
 
-          // License Upload Button
-          OutlinedButton.icon(
-            onPressed: _pickLicenseFile,
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: _licenseFileName != null ? AppColors.success : AppColors.accent,
-                width: 1.5,
+          // License & Istimara Buttons Row
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isUploadingLicense ? null : _pickLicenseFile,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: _licenseUrl != null ? AppColors.success : AppColors.accent,
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  ),
+                  icon: _isUploadingLicense
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Icon(
+                          _licenseUrl != null ? Icons.check_circle_rounded : Icons.drive_eta_rounded,
+                          color: _licenseUrl != null ? AppColors.success : AppColors.accent,
+                          size: 20,
+                        ),
+                  label: Text(
+                    _isUploadingLicense
+                        ? 'جاري الرفع...'
+                        : (_licenseUrl != null ? 'رخصة القيادة ✅' : 'رفع رخصة القيادة'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _licenseUrl != null ? AppColors.success : AppColors.accent,
+                    ),
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
-            icon: Icon(
-              _licenseFileName != null ? Icons.check_circle_rounded : Icons.drive_eta_rounded,
-              color: _licenseFileName != null ? AppColors.success : AppColors.accent,
-            ),
-            label: Text(
-              _licenseFileName != null
-                  ? 'تم إرفاق: $_licenseFileName'
-                  : 'رفع صورة رخصة السير والقيادة (مطلوب)',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: _licenseFileName != null ? AppColors.success : AppColors.accent,
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isUploadingVehicleReg ? null : _pickVehicleRegFile,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: _vehicleRegUrl != null ? AppColors.success : AppColors.primary,
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  ),
+                  icon: _isUploadingVehicleReg
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Icon(
+                          _vehicleRegUrl != null ? Icons.check_circle_rounded : Icons.badge_rounded,
+                          color: _vehicleRegUrl != null ? AppColors.success : AppColors.primary,
+                          size: 20,
+                        ),
+                  label: Text(
+                    _isUploadingVehicleReg
+                        ? 'جاري الرفع...'
+                        : (_vehicleRegUrl != null ? 'الاستمارة ✅' : 'رفع استمارة المركبة'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _vehicleRegUrl != null ? AppColors.success : AppColors.primary,
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           const SizedBox(height: 14),
 
           const Text(
-            'صور السيارة من الجهات الأربع لاعتماد الحساب:',
+            'صور السيارة الفعلية من الجهات الأربع والمقاعد الداخلية لاعتماد الحساب:',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _buildPhotoBox('أمام', Icons.arrow_upward_rounded),
-              const SizedBox(width: 8),
-              _buildPhotoBox('خلف', Icons.arrow_downward_rounded),
-              const SizedBox(width: 8),
-              _buildPhotoBox('يمين', Icons.arrow_forward_rounded),
-              const SizedBox(width: 8),
-              _buildPhotoBox('يسار', Icons.arrow_back_rounded),
+              _buildVehicleAnglePhotoBox(
+                label: 'أمام',
+                icon: Icons.arrow_upward_rounded,
+                photoUrl: _photoFrontUrl,
+                fileName: _photoFrontFileName,
+                isUploading: _isUploadingFront,
+                onTap: () => _pickVehicleAnglePhoto('front'),
+              ),
+              const SizedBox(width: 6),
+              _buildVehicleAnglePhotoBox(
+                label: 'خلف',
+                icon: Icons.arrow_downward_rounded,
+                photoUrl: _photoBackUrl,
+                fileName: _photoBackFileName,
+                isUploading: _isUploadingBack,
+                onTap: () => _pickVehicleAnglePhoto('back'),
+              ),
+              const SizedBox(width: 6),
+              _buildVehicleAnglePhotoBox(
+                label: 'يمين',
+                icon: Icons.arrow_forward_rounded,
+                photoUrl: _photoRightUrl,
+                fileName: _photoRightFileName,
+                isUploading: _isUploadingRight,
+                onTap: () => _pickVehicleAnglePhoto('right'),
+              ),
+              const SizedBox(width: 6),
+              _buildVehicleAnglePhotoBox(
+                label: 'يسار',
+                icon: Icons.arrow_back_rounded,
+                photoUrl: _photoLeftUrl,
+                fileName: _photoLeftFileName,
+                isUploading: _isUploadingLeft,
+                onTap: () => _pickVehicleAnglePhoto('left'),
+              ),
+              const SizedBox(width: 6),
+              _buildVehicleAnglePhotoBox(
+                label: 'داخلية',
+                icon: Icons.airline_seat_recline_normal_rounded,
+                photoUrl: _photoInteriorUrl,
+                fileName: _photoInteriorFileName,
+                isUploading: _isUploadingInterior,
+                onTap: () => _pickVehicleAnglePhoto('interior'),
+              ),
             ],
           ),
 
@@ -724,13 +1024,31 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
 
           // Bank PDF Picker
           OutlinedButton.icon(
-            onPressed: _pickBankCertificatePdf,
-            icon: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.accent),
+            onPressed: _isUploadingBankPdf ? null : _pickBankCertificatePdf,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: _bankCertificatePdfUrl != null ? AppColors.success : AppColors.accent,
+                width: 1.5,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+            icon: _isUploadingBankPdf
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(
+                    _bankCertificatePdfUrl != null ? Icons.check_circle_rounded : Icons.picture_as_pdf_rounded,
+                    color: _bankCertificatePdfUrl != null ? AppColors.success : AppColors.accent,
+                  ),
             label: Text(
-              _selectedPdfFileName != null
-                  ? 'تم إرفاق: $_selectedPdfFileName'
-                  : 'إرفاق شهادة الآيبان البنكي (ملف PDF)',
-              style: const TextStyle(fontSize: 13),
+              _isUploadingBankPdf
+                  ? 'جاري رفع إثبات الحساب البنكي...'
+                  : (_selectedPdfFileName != null
+                      ? 'تم إرفاق: $_selectedPdfFileName ✅'
+                      : 'إرفاق شهادة الآيبان البنكي (ملف PDF أو صورة)'),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: _bankCertificatePdfUrl != null ? AppColors.success : AppColors.accent,
+              ),
             ),
           ),
 
@@ -813,30 +1131,67 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildPhotoBox(String label, IconData icon) {
+  Widget _buildVehicleAnglePhotoBox({
+    required String label,
+    required IconData icon,
+    required String? photoUrl,
+    required String? fileName,
+    required bool isUploading,
+    required VoidCallback onTap,
+  }) {
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
     return Expanded(
-      child: Container(
-        height: 75,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: AppColors.accent),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_rounded, size: 12, color: AppColors.success),
-                SizedBox(width: 2),
-                Text('مرفقة', style: TextStyle(fontSize: 9, color: AppColors.success)),
-              ],
+      child: InkWell(
+        onTap: isUploading ? null : onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 82,
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          decoration: BoxDecoration(
+            color: hasPhoto ? AppColors.success.withValues(alpha: 0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: hasPhoto
+                  ? AppColors.success
+                  : (isUploading ? AppColors.accent : AppColors.cardBorder),
+              width: hasPhoto ? 1.8 : 1.2,
             ),
-          ],
+          ),
+          child: isUploading
+              ? const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                  ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      hasPhoto ? Icons.check_circle_rounded : icon,
+                      size: 22,
+                      color: hasPhoto ? AppColors.success : AppColors.primary,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: hasPhoto ? AppColors.success : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasPhoto ? 'تم الرفع ✅' : 'انقر للرفع',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: hasPhoto ? AppColors.success : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

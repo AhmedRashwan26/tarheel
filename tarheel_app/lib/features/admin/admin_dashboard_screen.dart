@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/api_endpoints.dart';
+import '../../core/services/upload_service.dart';
 import '../../core/network/api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../auth/role_selection_screen.dart';
@@ -720,6 +721,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   Widget _buildDocImageTile(String label, String? url) {
+    final formattedUrl = UploadService.formatUrl(url);
     return Container(
       width: 170,
       padding: const EdgeInsets.all(8),
@@ -732,9 +734,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: url != null && url.isNotEmpty
+            child: formattedUrl.isNotEmpty
                 ? Image.network(
-                    url,
+                    formattedUrl,
                     height: 110,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -758,9 +760,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
-          if (url != null && url.isNotEmpty)
+          if (formattedUrl.isNotEmpty)
             TextButton(
-              onPressed: () => _openImagePreview(url, label),
+              onPressed: () => _openImagePreview(formattedUrl, label),
               style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
               child: const Text('تكبير الصورة', style: TextStyle(fontSize: 11)),
             ),
@@ -770,6 +772,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   void _openImagePreview(String url, String title) {
+    final formattedUrl = UploadService.formatUrl(url);
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -790,7 +793,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               padding: const EdgeInsets.all(16.0),
               child: InteractiveViewer(
                 child: Image.network(
-                  url,
+                  formattedUrl,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => const Padding(
                     padding: EdgeInsets.all(32.0),

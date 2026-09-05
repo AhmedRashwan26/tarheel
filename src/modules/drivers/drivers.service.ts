@@ -44,6 +44,7 @@ export class DriversService {
           phoneNumber: dto.phoneNumber,
           fullName: dto.fullName,
           role: Role.DRIVER,
+          avatarUrl: dto.profilePictureUrl || dto.avatarUrl || null,
         },
       });
 

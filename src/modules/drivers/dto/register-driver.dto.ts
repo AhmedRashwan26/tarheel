@@ -27,6 +27,16 @@ export class RegisterDriverDto {
   @IsString()
   nationalId: string;
 
+  @ApiProperty({ example: '/uploads/driver_avatar.jpg', required: false, description: 'رابط الصورة الشخصية للكابتن' })
+  @IsOptional()
+  @IsString()
+  profilePictureUrl?: string;
+
+  @ApiProperty({ example: '/uploads/driver_avatar.jpg', required: false, description: 'رابط الصورة الرمزية للكابتن' })
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
   @ApiProperty({ example: '/uploads/id_card.jpg', required: false, description: 'رابط صورة الهوية الوطنية' })
   @IsOptional()
   @IsString()

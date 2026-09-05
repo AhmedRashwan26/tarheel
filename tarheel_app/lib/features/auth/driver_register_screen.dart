@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/upload_service.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
 import '../terms/terms_and_conditions_screen.dart';
@@ -29,20 +30,23 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
   int _capacity = 4;
   bool _isAirConditioned = true;
 
-  // 4 Angle Photos URLs (or simulated mock upload URLs)
-  String _photoFrontUrl = '/uploads/demo_car_front.jpg';
-  String _photoBackUrl = '/uploads/demo_car_back.jpg';
-  String _photoRightUrl = '/uploads/demo_car_right.jpg';
-  String _photoLeftUrl = '/uploads/demo_car_left.jpg';
-  String _vehicleRegUrl = '/uploads/demo_reg.jpg';
-  String _licenseUrl = '/uploads/demo_lic.jpg';
+  // Real Uploaded Document URLs
+  String? _photoFrontUrl;
+  String? _photoBackUrl;
+  String? _photoRightUrl;
+  String? _photoLeftUrl;
+  String? _photoInteriorUrl;
+  String? _vehicleRegUrl;
+  String? _licenseUrl;
+  String? _idCardPhotoUrl;
 
   // Bank Details
   final _bankNameController = TextEditingController(text: 'مصرف الراجحي');
   final _ibanController = TextEditingController(text: 'SA0380000000608010167519');
   final _accountHolderController = TextEditingController();
-  String _bankCertificatePdfUrl = '/uploads/demo_iban_cert.pdf';
-  String? _selectedPdfFileName = 'شهادة_الآيبان_البنكي.pdf';
+  String? _bankCertificatePdfUrl;
+  String? _selectedPdfFileName;
+  bool _isUploadingBankPdf = false;
 
   // Policy Agreement
   bool _agreeToAntiCashPolicy = false;
@@ -67,20 +71,39 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'png'],
+        allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
+        withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _selectedPdfFileName = result.files.first.name;
-          _bankCertificatePdfUrl = '/uploads/${result.files.first.name}';
-        });
-        if (mounted) {
+        final file = result.files.first;
+        setState(() => _isUploadingBankPdf = true);
+        final uploadRes = await UploadService().uploadFile(file);
+        setState(() => _isUploadingBankPdf = false);
+
+        if (uploadRes.success && uploadRes.url != null) {
+          setState(() {
+            _selectedPdfFileName = file.name;
+            _bankCertificatePdfUrl = uploadRes.url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ تم رفع إثبات الحساب البنكي بنجاح: ${file.name}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم إرفاق: $_selectedPdfFileName')),
+            SnackBar(
+              content: Text(uploadRes.errorMessage ?? 'فشل رفع الملف'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
     } catch (e) {
+      setState(() => _isUploadingBankPdf = false);
       debugPrint('File picker error: $e');
     }
   }
@@ -104,20 +127,20 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
       'phoneNumber': _phoneController.text.trim(),
       'fullName': _fullNameController.text.trim(),
       'nationalId': _nationalIdController.text.trim(),
-      'idCardPhotoUrl': '/uploads/demo_id.jpg',
+      'idCardPhotoUrl': _idCardPhotoUrl,
       'driverLicenseUrl': _licenseUrl,
-      'vehicleRegistrationUrl': _vehicleRegUrl,
+      'vehicleRegistrationUrl': _vehicleRegUrl ?? _licenseUrl,
       'vehicleBrand': _brandController.text.trim(),
       'vehicleModel': _modelController.text.trim(),
       'vehicleYear': int.tryParse(_yearController.text) ?? 2023,
       'plateNumber': _plateController.text.trim(),
       'capacity': _capacity,
       'isAirConditioned': _isAirConditioned,
-      'photoFrontUrl': _photoFrontUrl,
-      'photoBackUrl': _photoBackUrl,
-      'photoRightUrl': _photoRightUrl,
-      'photoLeftUrl': _photoLeftUrl,
-      'photoInteriorUrl': '/uploads/demo_interior.jpg',
+      'photoFrontUrl': _photoFrontUrl ?? _licenseUrl,
+      'photoBackUrl': _photoBackUrl ?? _photoFrontUrl ?? _licenseUrl,
+      'photoRightUrl': _photoRightUrl ?? _photoFrontUrl ?? _licenseUrl,
+      'photoLeftUrl': _photoLeftUrl ?? _photoFrontUrl ?? _licenseUrl,
+      'photoInteriorUrl': _photoInteriorUrl ?? _photoFrontUrl ?? _licenseUrl,
       'bankName': _bankNameController.text.trim(),
       'iban': _ibanController.text.trim(),
       'bankAccountHolderName': _accountHolderController.text.trim().isNotEmpty

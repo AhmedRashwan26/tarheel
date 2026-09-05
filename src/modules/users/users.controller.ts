@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -25,5 +25,14 @@ export class UsersController {
   @ApiOperation({ summary: 'استعراض الإشعارات والتنبيهات للمستخدم' })
   getMyNotifications(@CurrentUser('id') userId: string) {
     return this.usersService.getMyNotifications(userId);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'تحديث الملف الشخصي والصورة الرمزية (Avatar)' })
+  updateProfile(
+    @CurrentUser('id') userId: string,
+    @Body() body: { avatarUrl?: string; fullName?: string },
+  ) {
+    return this.usersService.updateProfile(userId, body);
   }
 }
