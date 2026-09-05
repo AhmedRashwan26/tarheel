@@ -104,7 +104,7 @@ export class OtpSenderService {
           body: JSON.stringify({
             to: phoneNumber,
             code: otpCode,
-            message: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n*${otpCode}*\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+            message: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
           }),
         });
 
@@ -139,7 +139,7 @@ export class OtpSenderService {
             type: 'text',
             text: {
               preview_url: false,
-              body: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n*${otpCode}*\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+              body: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
             },
           }),
         });
