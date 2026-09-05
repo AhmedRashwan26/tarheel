@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/location_service.dart';
 import '../../providers/trip_provider.dart';
 
 class PostTripScreen extends StatefulWidget {
@@ -21,6 +22,13 @@ class _PostTripScreenState extends State<PostTripScreen> {
   final _returnTimeController = TextEditingController(text: '15:30');
   final _notesController = TextEditingController();
 
+  double? _pickupLat = 24.82345;
+  double? _pickupLng = 46.68345;
+  double? _dropoffLat = 24.71612;
+  double? _dropoffLng = 46.61891;
+  bool _isDetectingPickup = false;
+  bool _isDetectingDropoff = false;
+
   DateTime _startDate = DateTime.now().add(const Duration(days: 1));
   bool _hasReturn = true;
   String _frequency = 'MONTHLY'; // 'ONCE', 'WEEKLY', 'MONTHLY', 'CUSTOM_DAYS'
@@ -39,6 +47,86 @@ class _PostTripScreenState extends State<PostTripScreen> {
     super.dispose();
   }
 
+  Future<void> _detectCurrentLocation({required bool isPickup}) async {
+    setState(() {
+      if (isPickup) {
+        _isDetectingPickup = true;
+      } else {
+        _isDetectingDropoff = true;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Text('جاري تحديد موقعك الجغرافي الفعلي عبر الـ GPS...'),
+          ],
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
+
+    try {
+      final loc = await LocationService().getCurrentLocationWithAddress();
+      if (!mounted) return;
+
+      if (loc != null) {
+        setState(() {
+          if (isPickup) {
+            _pickupAddressController.text = loc.address;
+            _pickupLat = loc.latitude;
+            _pickupLng = loc.longitude;
+          } else {
+            _dropoffAddressController.text = loc.address;
+            _dropoffLat = loc.latitude;
+            _dropoffLng = loc.longitude;
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ تم تحديد الموقع الفعلي بنجاح: ${loc.address}'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر الوصول للموقع الجغرافي، يرجى تفعيل الـ GPS والسماح بالإذن.'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء تحديد الموقع: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isPickup) {
+            _isDetectingPickup = false;
+          } else {
+            _isDetectingDropoff = false;
+          }
+        });
+      }
+    }
+  }
+
   Future<void> _handlePostTrip() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -53,11 +141,11 @@ class _PostTripScreenState extends State<PostTripScreen> {
 
     final tripData = {
       'pickupAddress': _pickupAddressController.text.trim(),
-      'pickupLatitude': 24.82345,
-      'pickupLongitude': 46.68345,
+      'pickupLatitude': _pickupLat ?? 24.82345,
+      'pickupLongitude': _pickupLng ?? 46.68345,
       'dropoffAddress': _dropoffAddressController.text.trim(),
-      'dropoffLatitude': 24.71612,
-      'dropoffLongitude': 46.61891,
+      'dropoffLatitude': _dropoffLat ?? 24.71612,
+      'dropoffLongitude': _dropoffLng ?? 46.61891,
       'startDate': _startDate.toIso8601String().split('T')[0],
       'preferredTime': _preferredTimeController.text.trim(),
       'hasReturn': _hasReturn,
@@ -109,21 +197,94 @@ class _PostTripScreenState extends State<PostTripScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildSectionHeader('1. المسار ونقاط الانطلاق والوصول', Icons.route_rounded),
+                const SizedBox(height: 10),
+
+                // Quick GPS auto-detect banner
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.gps_fixed_rounded, color: AppColors.primary, size: 22),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'تحديد موقعك الحالي أوتوماتيكياً عبر الـ GPS وتعبئته بنقرة واحدة:',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      TextButton.icon(
+                        onPressed: _isDetectingPickup ? null : () => _detectCurrentLocation(isPickup: true),
+                        icon: _isDetectingPickup
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.my_location_rounded, size: 16),
+                        label: const Text('انطلاق', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      TextButton.icon(
+                        onPressed: _isDetectingDropoff ? null : () => _detectCurrentLocation(isPickup: false),
+                        icon: _isDetectingDropoff
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.location_on_rounded, size: 16),
+                        label: const Text('وصول', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 12),
+
+                // Pickup Field
                 TextFormField(
                   controller: _pickupAddressController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'عنوان ونقطة الانطلاق (من أين؟)',
-                    prefixIcon: Icon(Icons.my_location_rounded, color: AppColors.primary),
+                    prefixIcon: const Icon(Icons.my_location_rounded, color: AppColors.primary),
+                    suffixIcon: Tooltip(
+                      message: 'تحديد موقعي الفعلي الحالي للانطلاق',
+                      child: IconButton(
+                        icon: _isDetectingPickup
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : const Icon(Icons.gps_fixed_rounded, color: AppColors.primary),
+                        onPressed: () => _detectCurrentLocation(isPickup: true),
+                      ),
+                    ),
                   ),
                   validator: (v) => v == null || v.isEmpty ? 'نقطة الانطلاق مطلوبة' : null,
                 ),
                 const SizedBox(height: 12),
+
+                // Dropoff Field
                 TextFormField(
                   controller: _dropoffAddressController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'عنوان ونقطة الوصول (إلى أين؟)',
-                    prefixIcon: Icon(Icons.location_on_rounded, color: AppColors.accent),
+                    prefixIcon: const Icon(Icons.location_on_rounded, color: AppColors.accent),
+                    suffixIcon: Tooltip(
+                      message: 'تحديد موقعي الفعلي الحالي للوصول',
+                      child: IconButton(
+                        icon: _isDetectingDropoff
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
+                            : const Icon(Icons.gps_fixed_rounded, color: AppColors.accent),
+                        onPressed: () => _detectCurrentLocation(isPickup: false),
+                      ),
+                    ),
                   ),
                   validator: (v) => v == null || v.isEmpty ? 'نقطة الوصول مطلوبة' : null,
                 ),

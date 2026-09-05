@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/location_service.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -132,43 +133,179 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _handleSendLocation() async {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.location_on, color: AppColors.accent),
-            SizedBox(width: 8),
-            Text('مشاركة الموقع الجغرافي'),
-          ],
-        ),
-        content: const Text(
-          'سيتم إرسال إحداثيات موقعك الحالي للطرف الآخر لتسهيل اللقاء وبدء الرحلة بأمان.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final success = await context.read<ChatProvider>().sendLocationMessage(
-                receiverId: widget.receiverId,
-                latitude: 24.7136,
-                longitude: 46.6753,
-                locationAddress: 'طريق الملك فهد، الرياض',
-                content: '📍 موقعي الحالي على الخريطة',
-                contractId: widget.contractId,
-                tripRequestId: widget.tripRequestId,
-              );
-              if (success) _scrollToBottom();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('مشاركة موقعي الآن'),
-          ),
-        ],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (ctx) {
+        bool isLocating = true;
+        LocationResult? detectedLoc;
+        String statusText = 'جاري تحديد موقعك الفعلي الحالي عبر الـ GPS...';
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            if (isLocating && detectedLoc == null) {
+              LocationService().getCurrentLocationWithAddress().then((loc) {
+                if (context.mounted) {
+                  setSheetState(() {
+                    isLocating = false;
+                    detectedLoc = loc;
+                    statusText = loc != null
+                        ? loc.address
+                        : 'تعذر الحصول على الموقع الدقيق، يرجى التأكد من تشغيل الـ GPS.';
+                  });
+                }
+              });
+            }
+
+            return Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 28),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'مشاركة موقعك الفعلي المباشر',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                            Text(
+                              'سيتمكن الطرف الآخر من فتح موقعك مباشرة في خرائط Google',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Detected location display card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: detectedLoc != null
+                            ? AppColors.success.withValues(alpha: 0.5)
+                            : AppColors.cardBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        if (isLocating)
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accent),
+                          )
+                        else
+                          Icon(
+                            detectedLoc != null ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                            color: detectedLoc != null ? AppColors.success : AppColors.warning,
+                            size: 24,
+                          ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                detectedLoc != null ? 'الموقع الفعلي المرصود:' : 'حالة الاتصال بالـ GPS:',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: detectedLoc != null ? AppColors.success : AppColors.textSecondary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                statusText,
+                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                              ),
+                              if (detectedLoc != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'الإحداثيات: ${detectedLoc!.latitude.toStringAsFixed(5)}, ${detectedLoc!.longitude.toStringAsFixed(5)}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: const Text('إلغاء'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          onPressed: isLocating
+                              ? null
+                              : () async {
+                                  Navigator.of(ctx).pop();
+                                  final double lat = detectedLoc?.latitude ?? 24.7136;
+                                  final double lng = detectedLoc?.longitude ?? 46.6753;
+                                  final String addr = detectedLoc?.address ?? '📍 موقعي الفعلي على الخريطة';
+
+                                  final success = await context.read<ChatProvider>().sendLocationMessage(
+                                    receiverId: widget.receiverId,
+                                    latitude: lat,
+                                    longitude: lng,
+                                    locationAddress: addr,
+                                    content: '📍 موقعي الفعلي على الخريطة',
+                                    contractId: widget.contractId,
+                                    tripRequestId: widget.tripRequestId,
+                                  );
+                                  if (success) _scrollToBottom();
+                                },
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          label: const Text('إرسال الموقع الآن'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -413,26 +550,51 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isMe ? Colors.white.withOpacity(0.15) : AppColors.secondaryLight,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.map, size: 16, color: isMe ? Colors.white : AppColors.secondary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'فتح الموقع بالخرائط',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isMe ? Colors.white : AppColors.secondary,
+                  InkWell(
+                    onTap: () {
+                      final dynamic rawLat = msg['latitude'];
+                      final dynamic rawLng = msg['longitude'];
+                      final double? lat = rawLat is num
+                          ? rawLat.toDouble()
+                          : double.tryParse(rawLat?.toString() ?? '');
+                      final double? lng = rawLng is num
+                          ? rawLng.toDouble()
+                          : double.tryParse(rawLng?.toString() ?? '');
+
+                      if (lat != null && lng != null) {
+                        LocationService.openGoogleMaps(
+                          latitude: lat,
+                          longitude: lng,
+                          label: msg['locationAddress'] ?? 'موقع المشوار',
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('إحداثيات الموقع غير متوفرة')),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isMe ? Colors.white.withValues(alpha: 0.18) : AppColors.secondaryLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.map_rounded, size: 16, color: isMe ? Colors.white : AppColors.secondary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'فتح الموقع في Google Maps ↗',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isMe ? Colors.white : AppColors.secondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
