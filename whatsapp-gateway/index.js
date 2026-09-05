@@ -1,5 +1,5 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, proto, generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -131,7 +131,7 @@ app.get('/logs', (req, res) => {
 });
 
 app.post('/send', async (req, res) => {
-  const { to, message, code } = req.body;
+  const { to, message } = req.body;
 
   if (!to || !message) {
     return res.status(400).json({ success: false, error: 'Missing "to" or "message" in request body' });
@@ -144,77 +144,15 @@ app.post('/send', async (req, res) => {
   try {
     const cleanPhone = normalizePhoneForWhatsApp(to);
     const jid = `${cleanPhone}@s.whatsapp.net`;
-    const otpCode = code || (message.match(/\b\d{6}\b/) ? message.match(/\b\d{6}\b/)[0] : null);
 
-    let messageId = null;
-
-    if (otpCode) {
-      try {
-        logEvent(`📤 جاري إرسال رمز OTP [${otpCode}] مع زر "نسخ الرمز" إلى ${cleanPhone}...`);
-
-        const interactiveMsg = {
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: {
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2
-              },
-              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-                body: proto.Message.InteractiveMessage.Body.fromObject({
-                  text: message
-                }),
-                footer: proto.Message.InteractiveMessage.Footer.fromObject({
-                  text: 'منصة ترحيل لخدمات النقل والمشاوير'
-                }),
-                header: proto.Message.InteractiveMessage.Header.fromObject({
-                  title: 'منصة تـرحـيـل (Tarheel)',
-                  hasMediaAttachment: false
-                }),
-                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-                  buttons: [
-                    {
-                      name: 'cta_copy',
-                      buttonParamsJson: JSON.stringify({
-                        display_text: '📋 نسخ رمز التحقق',
-                        id: 'copy_otp_code',
-                        copy_code: otpCode
-                      })
-                    }
-                  ]
-                })
-              })
-            }
-          }
-        };
-
-        const waMsg = generateWAMessageFromContent(jid, interactiveMsg, { userJid: sock.user?.id || jid });
-        const sendPromise = sock.relayMessage(jid, waMsg.message, { messageId: waMsg.key.id });
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
-        );
-        await Promise.race([sendPromise, timeoutPromise]);
-        messageId = waMsg.key.id;
-        logEvent(`✅ تم تسليم رسالة OTP مع زر النسخ بنجاح إلى ${cleanPhone} (معرف: ${messageId})`);
-      } catch (interactiveErr) {
-        logEvent(`⚠️ تعذر إرسال الرسالة التفاعلية، جاري التراجع للرسالة النصية: ${interactiveErr.message}`);
-        const sendPromise = sock.sendMessage(jid, { text: message });
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
-        );
-        const result = await Promise.race([sendPromise, timeoutPromise]);
-        messageId = result?.key?.id;
-        logEvent(`✅ تم تسليم الرسالة النصية بنجاح إلى واتساب ${cleanPhone} (معرف: ${messageId})`);
-      }
-    } else {
-      logEvent(`📤 جاري إرسال رسالة نصية إلى ${cleanPhone}...`);
-      const sendPromise = sock.sendMessage(jid, { text: message });
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
-      );
-      const result = await Promise.race([sendPromise, timeoutPromise]);
-      messageId = result?.key?.id;
-      logEvent(`✅ تم تسليم الرسالة بنجاح إلى واتساب ${cleanPhone} (معرف: ${messageId})`);
-    }
+    logEvent(`📤 جاري إرسال رسالة نصية مباشرة إلى ${cleanPhone}...`);
+    const sendPromise = sock.sendMessage(jid, { text: message });
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('مهلة إرسال رسالة الواتساب انتهت (10 ثوانٍ)')), 10000)
+    );
+    const result = await Promise.race([sendPromise, timeoutPromise]);
+    const messageId = result?.key?.id;
+    logEvent(`✅ تم تسليم الرسالة بنجاح إلى واتساب ${cleanPhone} (معرف: ${messageId})`);
 
     res.json({
       success: true,
