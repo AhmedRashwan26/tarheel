@@ -7,3 +7,7 @@ uploads/*
 npm-debug.log
 whatsapp-gateway/auth_info
 whatsapp-gateway/node_modules
+backups/*
+!backups/.gitkeep
+hetzner_qr.png
+hetzner_qr.html
