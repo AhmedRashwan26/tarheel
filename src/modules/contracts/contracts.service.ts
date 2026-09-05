@@ -120,47 +120,29 @@ export class ContractsService {
       return contract;
     });
 
-    // Notify Driver via WebSocket and Database Notification
-    const clientName = result.client?.fullName || 'العميل';
-    const pickup = offer.tripRequest.pickupAddress;
-    const dropoff = offer.tripRequest.dropoffAddress;
-    const preferredTime = offer.tripRequest.preferredTime;
-
-    const driverNoticeTitle = `🎉 مبارك! وافق العميل على عرضك السعري (${baseAmount} ر.س)`;
-    const driverNoticeMessage = `تهانينا كابتن! لقد وافق العميل ${clientName} على عرضك لمشوار من (${pickup}) إلى (${dropoff}) بقيمة (${baseAmount} ر.س).\n\n` +
-      `📌 توجيهات مهمة لرحلة مميزة:\n` +
-      `1️⃣ احترام مواعيد العمل: يرجى التواجد في الموعد المحدد بدقة (${preferredTime}) والالتزام التام بوقت العميل.\n` +
-      `2️⃣ نظافة السيارة: تأكد من نظافة المركبة داخلياً وخارجياً وتوفير بيئة مريحة ومكيفة للراكب.\n` +
-      `3️⃣ التعامل الأخلاقي والراقي: عامل العميل بأخلاق فاضلة ولباقة، فالتعامل الحسن يرفع تقييمك (5 نجوم) ويضمن لك الأولوية في استقبال عروض ومشاريع جديدة مستقبلاً.\n` +
-      `4️⃣ جدول العمل اليومي: تم إضافة هذا المشوار رسمياً إلى جدول عملك اليومي على منصة ترحيل.\n\n` +
-      `💰 مستحقاتك الصافية: ${driverEarnings} ر.س (بعد خصم 13.50% عمولة ترحيل) سيتم إيداعها بحسابك (${offer.driverProfile.bankName}) بعد إتمام الرحلة.`;
-
-    this.gateway.notifyDriverBidAccepted(offer.driverProfile.user.id, {
-      contract: result,
-      title: driverNoticeTitle,
-      message: driverNoticeMessage,
-      pickup,
-      dropoff,
+    // Notify Driver via Multi-Channel (In-App DB + WebSocket + WhatsApp + Email)
+    await this.notificationsService.notifyDriverBidAcceptedMultiChannel({
+      driver: {
+        id: offer.driverProfile.user.id,
+        fullName: offer.driverProfile.user.fullName,
+        phoneNumber: offer.driverProfile.user.phoneNumber,
+        email: offer.driverProfile.user.email,
+        bankName: offer.driverProfile.bankName,
+      },
+      client: {
+        fullName: result.client?.fullName || 'العميل',
+        phoneNumber: result.client?.phoneNumber,
+      },
+      trip: {
+        id: offer.tripRequestId,
+        pickupAddress: offer.tripRequest.pickupAddress,
+        dropoffAddress: offer.tripRequest.dropoffAddress,
+        preferredTime: offer.tripRequest.preferredTime,
+      },
+      contractId: result.id,
       baseAmount,
       driverEarnings,
-      preferredTime,
     });
-
-    await this.notificationsService.createNotification(
-      offer.driverProfile.user.id,
-      driverNoticeTitle,
-      driverNoticeMessage,
-      NotificationType.BID_ACCEPTED,
-      {
-        contractId: result.id,
-        tripId: offer.tripRequestId,
-        pickup,
-        dropoff,
-        baseAmount,
-        driverEarnings,
-        preferredTime,
-      },
-    );
 
     return {
       message: 'تم قبول العرض بنجاح! يرجى سداد المبلغ الإجمالي المحتسب شاملاً 15% ضريبة القيمة المضافة لتفعيل الضمان المالي.',

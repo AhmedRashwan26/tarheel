@@ -32,6 +32,7 @@ export class OffersService {
 
     const trip = await this.prisma.tripRequest.findUnique({
       where: { id: dto.tripRequestId },
+      include: { client: true },
     });
 
     if (!trip) {
@@ -105,19 +106,37 @@ export class OffersService {
       dropoffAddress: trip.dropoffAddress,
     };
 
-    // Notify client via websocket & database record
-    this.gateway.notifyClientNewBid(trip.clientId, {
-      ...notificationPayload,
-      offer,
+    // Notify client via Multi-Channel (In-App DB + WebSocket + WhatsApp + Email)
+    await this.notificationsService.notifyClientNewBidMultiChannel({
+      client: {
+        id: trip.clientId,
+        fullName: trip.client.fullName,
+        phoneNumber: trip.client.phoneNumber,
+        email: trip.client.email,
+      },
+      trip: {
+        id: trip.id,
+        pickupAddress: trip.pickupAddress,
+        dropoffAddress: trip.dropoffAddress,
+      },
+      driver: {
+        fullName: driverProfile.user.fullName,
+        ratingAverage: driverProfile.ratingAverage,
+        totalTrips: driverProfile.totalTripsCount,
+      },
+      vehicle: {
+        fullName: carFullName,
+        brand: carBrand,
+        model: carModel,
+        year: carYear,
+        plateNumber: driverProfile.vehicle?.plateNumber || '',
+        photoFrontUrl: carPhotoFrontUrl,
+        isAirConditioned: driverProfile.vehicle?.isAirConditioned ?? true,
+        capacity: driverProfile.vehicle?.capacity || 4,
+      },
+      offerPrice: dto.offerPrice,
+      offerId: offer.id,
     });
-
-    await this.notificationsService.createNotification(
-      trip.clientId,
-      `🚗 تلقيت عرض سعر جديد بقيمة ${dto.offerPrice} ر.س!`,
-      `قدم الكابتن ${driverProfile.user.fullName} عرضاً بقيمة ${dto.offerPrice} ر.س بسيارة (${carFullName}) لمشوارك من ${trip.pickupAddress} إلى ${trip.dropoffAddress}. اضغط لمعاينة صورة السيارة وتفاصيل العرض.`,
-      NotificationType.BID_RECEIVED,
-      notificationPayload,
-    );
 
     const platformFee = (dto.offerPrice * PLATFORM_CONSTANTS.COMMISSION_PERCENTAGE) / 100;
     const netEarnings = dto.offerPrice - platformFee;

@@ -84,16 +84,16 @@ export class OtpSenderService {
   }
 
   /**
-   * إرسال رمز التحقق عبر الواتساب (WhatsApp OTP)
-   * يدعم Meta WhatsApp Cloud API أو بوابات التراسل (Taqnyat/Twilio/Unifonic)
+   * إرسال رسالة نصية عامة عبر الواتساب (WhatsApp Message)
+   * يدعم Evolution API على خادم Hetzner أو بوابة Baileys أو Meta Cloud API
    */
-  async sendWhatsAppOtp(phoneNumber: string, otpCode: string): Promise<boolean> {
+  async sendWhatsAppMessage(phoneNumber: string, message: string): Promise<boolean> {
     const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL;
     const whatsappApiUrl = process.env.WHATSAPP_API_URL;
     const whatsappToken = process.env.WHATSAPP_API_TOKEN;
     const whatsappPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-    this.logger.log(`[WHATSAPP OTP] Sending code [${otpCode}] to [${phoneNumber}]`);
+    this.logger.log(`[WHATSAPP MESSAGE] Sending message to [${phoneNumber}]`);
 
     // 0. Try Evolution API on Hetzner Server (Enterprise Priority)
     const evolutionUrl = process.env.EVOLUTION_API_URL;
@@ -118,14 +118,14 @@ export class OtpSenderService {
               presence: 'composing',
             },
             textMessage: {
-              text: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+              text: message,
             },
           }),
         });
 
         const resData = await response.json();
         if (response.ok && (resData?.key || resData?.message || resData?.status === 'SUCCESS' || resData?.status === 200)) {
-          this.logger.log(`✅ [Hetzner Evolution API] WhatsApp OTP sent successfully to ${cleanPhone}`);
+          this.logger.log(`✅ [Hetzner Evolution API] WhatsApp message sent successfully to ${cleanPhone}`);
           return true;
         } else {
           this.logger.warn(`Evolution API response: ${JSON.stringify(resData)}`);
@@ -143,14 +143,13 @@ export class OtpSenderService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: phoneNumber,
-            code: otpCode,
-            message: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+            message: message,
           }),
         });
 
         const resData = await response.json();
         if (response.ok && resData.success) {
-          this.logger.log(`✅ [Self-Hosted Gateway] WhatsApp OTP sent successfully to ${phoneNumber}`);
+          this.logger.log(`✅ [Self-Hosted Gateway] WhatsApp message sent successfully to ${phoneNumber}`);
           return true;
         } else {
           this.logger.warn(`WhatsApp Gateway response: ${JSON.stringify(resData)}`);
@@ -179,23 +178,62 @@ export class OtpSenderService {
             type: 'text',
             text: {
               preview_url: false,
-              body: `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`,
+              body: message,
             },
           }),
         });
 
         const resData = await response.json();
         if (response.ok) {
-          this.logger.log(`✅ [Meta Cloud API] WhatsApp OTP sent successfully to ${phoneNumber}`);
+          this.logger.log(`✅ [Meta Cloud API] WhatsApp message sent successfully to ${phoneNumber}`);
           return true;
         }
       } catch (error) {
-        this.logger.error(`Failed to send WhatsApp OTP via Meta: ${error.message}`);
+        this.logger.error(`Failed to send WhatsApp message via Meta: ${error.message}`);
       }
     }
 
-    this.logger.log(`[DEV MODE] WhatsApp message simulated. Code: ${otpCode} for ${phoneNumber}`);
+    this.logger.log(`[DEV MODE / SIMULATION] WhatsApp message: ${message.substring(0, 80)}... for ${phoneNumber}`);
     return true;
+  }
+
+  /**
+   * إرسال رمز التحقق عبر الواتساب (WhatsApp OTP)
+   */
+  async sendWhatsAppOtp(phoneNumber: string, otpCode: string): Promise<boolean> {
+    const message = `🚗 منصة تـرحـيـل (Tarheel)\n\nرمز التحقق الخاص بك هو:\n\`\`\`${otpCode}\`\`\`\n\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أحد.`;
+    return this.sendWhatsAppMessage(phoneNumber, message);
+  }
+
+  /**
+   * إرسال بريد إلكتروني عام بصيغة HTML متوافقة وفخمة
+   */
+  async sendEmailNotification(toEmail: string, subject: string, htmlContent: string, plainText?: string): Promise<boolean> {
+    const fromEmail = 'tarheel.platform@gmail.com';
+    const appName = 'منصة ترحيل';
+
+    this.logger.log(`[EMAIL NOTIFICATION] Sending to [${toEmail}] - Subject: ${subject}`);
+    const transporter = this.getTransporter();
+    try {
+      await transporter.sendMail({
+        from: `"${appName}" <${fromEmail}>`,
+        to: toEmail,
+        replyTo: fromEmail,
+        subject,
+        text: plainText || subject,
+        html: htmlContent,
+        headers: {
+          'X-Priority': '1',
+          'X-MSMail-Priority': 'High',
+          'Importance': 'high',
+        },
+      });
+      this.logger.log(`✅ Email notification sent successfully to ${toEmail}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send Email notification to ${toEmail}: ${error.message}`);
+      return false;
+    }
   }
 
   /**
@@ -229,27 +267,7 @@ export class OtpSenderService {
       </div>
     `;
 
-    const transporter = this.getTransporter();
-    try {
-      await transporter.sendMail({
-        from: `"${appName}" <${fromEmail}>`,
-        to: toEmail,
-        replyTo: fromEmail,
-        subject: `رمز التحقق لمنصة ترحيل: ${otpCode}`,
-        text: `مرحباً بك في منصة ترحيل\n\nرمز التحقق الخاص بك لتسجيل الدخول إلى حسابك في ترحيل هو: ${otpCode}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.\nتنبيه أمني: لا تشارك هذا الرمز مع أي شخص. فريق ترحيل لن يطلب منك هذا الرمز أبداً.`,
-        html: htmlContent,
-        headers: {
-          'X-Priority': '1',
-          'X-MSMail-Priority': 'High',
-          'Importance': 'high',
-        },
-      });
-      this.logger.log(`✅ Email OTP sent successfully to ${toEmail}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Failed to send Email OTP: ${error.message}`);
-      return false;
-    }
+    return this.sendEmailNotification(toEmail, `رمز التحقق لمنصة ترحيل: ${otpCode}`, htmlContent);
   }
 
   /**
