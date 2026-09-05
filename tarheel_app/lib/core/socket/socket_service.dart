@@ -11,10 +11,12 @@ class SocketService {
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
   final _bidController = StreamController<Map<String, dynamic>>.broadcast();
   final _tripController = StreamController<Map<String, dynamic>>.broadcast();
+  final _readReceiptController = StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
   Stream<Map<String, dynamic>> get bidStream => _bidController.stream;
   Stream<Map<String, dynamic>> get tripStream => _tripController.stream;
+  Stream<Map<String, dynamic>> get readReceiptStream => _readReceiptController.stream;
 
   SocketService._internal();
 
@@ -36,26 +38,32 @@ class SocketService {
     });
 
     socket?.on('new_chat_message', (data) {
-      if (data is Map<String, dynamic>) {
-        _messageController.add(data);
+      if (data is Map) {
+        _messageController.add(Map<String, dynamic>.from(data));
+      }
+    });
+
+    socket?.on('messages_marked_read', (data) {
+      if (data is Map) {
+        _readReceiptController.add(Map<String, dynamic>.from(data));
       }
     });
 
     socket?.on('new_bid_received', (data) {
-      if (data is Map<String, dynamic>) {
-        _bidController.add(data);
+      if (data is Map) {
+        _bidController.add(Map<String, dynamic>.from(data));
       }
     });
 
     socket?.on('bid_accepted', (data) {
-      if (data is Map<String, dynamic>) {
-        _bidController.add(data);
+      if (data is Map) {
+        _bidController.add(Map<String, dynamic>.from(data));
       }
     });
 
     socket?.on('new_trip_request', (data) {
-      if (data is Map<String, dynamic>) {
-        _tripController.add(data);
+      if (data is Map) {
+        _tripController.add(Map<String, dynamic>.from(data));
       }
     });
 

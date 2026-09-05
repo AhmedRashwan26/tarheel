@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/socket/socket_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
+import '../../providers/chat_provider.dart';
 import 'driver_feed_screen.dart';
 import 'driver_schedule_and_contracts_screen.dart';
 import '../client/notifications_screen.dart';
@@ -28,6 +29,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TripProvider>(context, listen: false).fetchOpenTripsFeed();
       Provider.of<TripProvider>(context, listen: false).fetchMyContracts();
+      Provider.of<ChatProvider>(context, listen: false).fetchUnreadCount();
     });
 
     _bidSubscription = SocketService().bidStream.listen((data) {
@@ -277,12 +279,24 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.explore_rounded), label: 'سوق الطلبات'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment_rounded), label: 'عقودي والجدول'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: 'المحفظة والبنك'),
-          BottomNavigationBarItem(icon: Icon(Icons.support_agent_rounded), label: 'الدعم الفني'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'حسابي'),
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.explore_rounded), label: 'سوق الطلبات'),
+          BottomNavigationBarItem(
+            icon: Consumer<ChatProvider>(
+              builder: (context, chat, _) {
+                if (chat.unreadCount == 0) return const Icon(Icons.assignment_rounded);
+                return Badge(
+                  label: Text('${chat.unreadCount}'),
+                  backgroundColor: Colors.redAccent,
+                  child: const Icon(Icons.assignment_rounded),
+                );
+              },
+            ),
+            label: 'عقودي والجدول',
+          ),
+          const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: 'المحفظة والبنك'),
+          const BottomNavigationBarItem(icon: Icon(Icons.support_agent_rounded), label: 'الدعم الفني'),
+          const BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'حسابي'),
         ],
       ),
     );

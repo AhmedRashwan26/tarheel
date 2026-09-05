@@ -37,8 +37,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final chat = context.read<ChatProvider>();
+      chat.setCurrentRoom(
+        contractId: widget.contractId,
+        tripRequestId: widget.tripRequestId,
+      );
       if (widget.contractId != null) {
-        context.read<ChatProvider>().loadContractMessages(widget.contractId!);
+        chat.loadContractMessages(widget.contractId!);
+      } else if (widget.tripRequestId != null) {
+        chat.loadTripMessages(widget.tripRequestId!);
       }
     });
 
@@ -52,6 +59,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         });
       }
     });
+  }
+
+  @override
+  void deactivate() {
+    context.read<ChatProvider>().clearCurrentRoom();
+    super.deactivate();
   }
 
   @override
@@ -426,13 +439,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
 
             const SizedBox(height: 4),
-            // Timestamp
-            Text(
-              createdAt,
-              style: TextStyle(
-                color: isMe ? Colors.white60 : AppColors.textMuted,
-                fontSize: 10,
-              ),
+            // Timestamp and Read Receipts
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  createdAt,
+                  style: TextStyle(
+                    color: isMe ? Colors.white70 : AppColors.textMuted,
+                    fontSize: 10,
+                  ),
+                ),
+                if (isMe) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    msg['isRead'] == true ? Icons.done_all : Icons.done,
+                    size: 15,
+                    color: msg['isRead'] == true
+                        ? const Color(0xFF64B5F6) // WhatsApp style blue double checkmarks
+                        : Colors.white70,
+                  ),
+                ],
+              ],
             ),
           ],
         ),

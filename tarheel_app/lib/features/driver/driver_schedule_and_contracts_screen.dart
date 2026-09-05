@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/trip_provider.dart';
+import '../../providers/chat_provider.dart';
 import '../chat/chat_room_screen.dart';
 
 class DriverScheduleAndContractsScreen extends StatefulWidget {
@@ -718,26 +719,56 @@ class _DriverScheduleAndContractsScreenState extends State<DriverScheduleAndCont
                 // Chat button
                 Expanded(
                   flex: 2,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      side: const BorderSide(color: AppColors.primary, width: 1.2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatRoomScreen(
-                            contractId: slot['contractId'],
-                            receiverName: slot['clientName'],
-                            receiverId: slot['clientId'],
-                          ),
+                  child: Consumer<ChatProvider>(
+                    builder: (context, chat, _) {
+                      final contractId = slot['contractId']?.toString() ?? '';
+                      final unread = chat.unreadByContract[contractId] ?? 0;
+                      return OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          side: const BorderSide(color: AppColors.primary, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatRoomScreen(
+                                contractId: slot['contractId'],
+                                receiverName: slot['clientName'],
+                                receiverId: slot['clientId'],
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.chat_bubble_outline_rounded, size: 16, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            const Text('محادثة', style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                            if (unread > 0) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '$unread',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       );
                     },
-                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16, color: AppColors.primary),
-                    label: const Text('محادثة', style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
                   ),
                 ),
 
@@ -986,20 +1017,50 @@ class _DriverScheduleAndContractsScreenState extends State<DriverScheduleAndCont
                     ],
                   ),
                   const SizedBox(height: 14),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ChatRoomScreen(
-                            contractId: contract['id'] ?? '',
-                            receiverName: client['fullName'] ?? 'الراكب',
-                            receiverId: contract['clientId'] ?? client['id'] ?? '',
-                          ),
+                  Consumer<ChatProvider>(
+                    builder: (context, chat, _) {
+                      final contractId = contract['id']?.toString() ?? '';
+                      final unread = chat.unreadByContract[contractId] ?? 0;
+                      return ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ChatRoomScreen(
+                                contractId: contract['id'] ?? '',
+                                receiverName: client['fullName'] ?? 'الراكب',
+                                receiverId: contract['clientId'] ?? client['id'] ?? '',
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.chat_rounded, size: 16),
+                            const SizedBox(width: 8),
+                            const Text('محادثة الراكب (نص / صوت / موقع مباشر)'),
+                            if (unread > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '$unread جديدة',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       );
                     },
-                    icon: const Icon(Icons.chat_rounded, size: 16),
-                    label: const Text('محادثة الراكب (نص / صوت / موقع مباشر)'),
                   ),
                 ],
               ),

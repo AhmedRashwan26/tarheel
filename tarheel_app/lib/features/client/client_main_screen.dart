@@ -6,6 +6,7 @@ import '../../core/constants/api_endpoints.dart';
 import '../../core/socket/socket_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
+import '../../providers/chat_provider.dart';
 import 'post_trip_screen.dart';
 import 'trip_offers_screen.dart';
 import 'notifications_screen.dart';
@@ -30,6 +31,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TripProvider>(context, listen: false).fetchMyTripRequests();
       Provider.of<TripProvider>(context, listen: false).fetchMyContracts();
+      Provider.of<ChatProvider>(context, listen: false).fetchUnreadCount();
     });
 
     _bidSubscription = SocketService().bidStream.listen((data) {
@@ -284,6 +286,46 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
           ],
         ),
         actions: [
+          Consumer<ChatProvider>(
+            builder: (context, chat, _) {
+              if (chat.unreadCount == 0) return const SizedBox.shrink();
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.mark_chat_unread_rounded, color: Colors.amber),
+                    tooltip: 'رسائل غير مقروءة (${chat.unreadCount})',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Text(
+                        '${chat.unreadCount}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
             tooltip: 'الإشعارات والتنبيهات',
@@ -485,20 +527,50 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ChatRoomScreen(
-                          contractId: contract['id'],
-                          receiverName: driverUser['fullName'] ?? 'السائق',
-                          receiverId: contract['driverProfile']?['userId'] ?? '',
-                        ),
+                child: Consumer<ChatProvider>(
+                  builder: (context, chat, _) {
+                    final contractId = contract['id']?.toString() ?? '';
+                    final contractUnread = chat.unreadByContract[contractId] ?? 0;
+                    return OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ChatRoomScreen(
+                              contractId: contract['id'],
+                              receiverName: driverUser['fullName'] ?? 'السائق',
+                              receiverId: contract['driverProfile']?['userId'] ?? '',
+                            ),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.chat_rounded, size: 16),
+                          const SizedBox(width: 6),
+                          const Text('محادثة السائق (نص/صوت/موقع)', style: TextStyle(fontSize: 12)),
+                          if (contractUnread > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$contractUnread جديدة',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     );
                   },
-                  icon: const Icon(Icons.chat_rounded, size: 16),
-                  label: const Text('محادثة السائق (نص/صوت/موقع)', style: TextStyle(fontSize: 12)),
                 ),
               ),
             ],

@@ -58,6 +58,13 @@ class ApiEndpoints {
   static String get sendChatMessage => '$baseUrl/chat/send';
   static String contractChat(String contractId) => '$baseUrl/chat/contract/$contractId';
   static String tripChat(String tripId) => '$baseUrl/chat/trip/$tripId';
+  static String get chatUnreadCount => '$baseUrl/chat/unread-count';
+  static String chatMarkRead({String? contractId, String? tripRequestId}) {
+    String q = '';
+    if (contractId != null) q += 'contractId=$contractId&';
+    if (tripRequestId != null) q += 'tripRequestId=$tripRequestId&';
+    return '$baseUrl/chat/mark-read?$q';
+  }
 
   // Support
   static String get createTicket => '$baseUrl/support/ticket';

@@ -5,6 +5,7 @@ import '../../core/constants/api_endpoints.dart';
 import '../../core/network/api_client.dart';
 import 'trip_offers_screen.dart';
 import '../driver/driver_schedule_and_contracts_screen.dart';
+import '../chat/chat_room_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -292,23 +293,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     final hasFrontPhoto = carPhotoFrontUrl != null && carPhotoFrontUrl.isNotEmpty;
 
-    final isBidAccepted = notif['type'] == 'BID_ACCEPTED' || metadata?['contractId'] != null;
+    final isChatMessage = notif['type'] == 'CHAT_MESSAGE_RECEIVED';
+    final isBidAccepted = notif['type'] == 'BID_ACCEPTED';
     final driverEarnings = metadata?['driverEarnings'];
+
+    Color cardBorderColor;
+    if (isRead) {
+      cardBorderColor = Colors.white10;
+    } else if (isChatMessage) {
+      cardBorderColor = const Color(0xFF25D366).withOpacity(0.7);
+    } else if (isBidAccepted) {
+      cardBorderColor = Colors.amber.withOpacity(0.6);
+    } else {
+      cardBorderColor = AppColors.accent.withOpacity(0.5);
+    }
+
+    final badgeColor = isChatMessage
+        ? const Color(0xFF25D366)
+        : (isBidAccepted ? Colors.amber : AppColors.accent);
+
+    final typeIcon = isChatMessage
+        ? Icons.chat_rounded
+        : (isBidAccepted ? Icons.celebration_rounded : Icons.local_offer_rounded);
 
     return Container(
       decoration: BoxDecoration(
         color: isRead ? AppColors.cardDark : const Color(0xFF1E2638),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isRead
-              ? Colors.white10
-              : (isBidAccepted ? Colors.amber.withOpacity(0.6) : AppColors.accent.withOpacity(0.5)),
+          color: cardBorderColor,
           width: isRead ? 1 : 1.5,
         ),
         boxShadow: [
           if (!isRead)
             BoxShadow(
-              color: (isBidAccepted ? Colors.amber : AppColors.accent).withOpacity(0.12),
+              color: badgeColor.withOpacity(0.12),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -320,7 +339,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            if (isBidAccepted) {
+            if (isChatMessage) {
+              final senderId = metadata?['senderId'] ?? '';
+              final senderName = metadata?['senderName'] ?? 'المستخدم';
+              final contractId = metadata?['contractId'];
+              final tripRequestId = metadata?['tripRequestId'];
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ChatRoomScreen(
+                    receiverId: senderId,
+                    receiverName: senderName,
+                    contractId: contractId,
+                    tripRequestId: tripRequestId,
+                  ),
+                ),
+              );
+            } else if (isBidAccepted) {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const DriverScheduleAndContractsScreen(),
@@ -346,12 +380,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: (isBidAccepted ? Colors.amber : AppColors.accent).withOpacity(0.15),
+                        color: badgeColor.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        isBidAccepted ? Icons.celebration_rounded : Icons.local_offer_rounded,
-                        color: isBidAccepted ? Colors.amber : AppColors.accent,
+                        typeIcon,
+                        color: badgeColor,
                         size: 20,
                       ),
                     ),
@@ -526,7 +560,40 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ],
 
                 // Action bar
-                if (isBidAccepted) ...[
+                if (isChatMessage) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final senderId = metadata?['senderId'] ?? '';
+                        final senderName = metadata?['senderName'] ?? 'المستخدم';
+                        final contractId = metadata?['contractId'];
+                        final tripRequestId = metadata?['tripRequestId'];
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ChatRoomScreen(
+                              receiverId: senderId,
+                              receiverName: senderName,
+                              contractId: contractId,
+                              tripRequestId: tripRequestId,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+                      label: const Text('فتح المحادثة والرد الآن'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else if (isBidAccepted) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
