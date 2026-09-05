@@ -79,6 +79,7 @@ enum PaymentMethod {
   APPLE_PAY
   STC_PAY
   WALLET
+  PAYONEER
 }
 
 enum TransactionType {
@@ -320,6 +321,8 @@ model EscrowPayment {
   totalAmount               Float
   paymentMethod             PaymentMethod @default(CARD)
   transactionReference      String        @unique
+  payoneerSessionId         String?
+  payoneerLongId            String?
   status                    PaymentStatus @default(INITIALIZED)
   antiCashWarningDisplayed  Boolean       @default(true)
   paidAt                    DateTime?
