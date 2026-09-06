@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../core/constants/api_endpoints.dart';
 import '../core/network/api_client.dart';
 
@@ -207,8 +208,18 @@ class TripProvider extends ChangeNotifier {
       return response.data['success'] == true;
     } catch (e) {
       _isLoading = false;
+      if (e is DioException) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          _errorMessage = resData['message'].toString();
+        } else {
+          _errorMessage = 'يرجى استكمال بيانات مركبتك ووثائقك لتقديم العرض';
+        }
+      } else {
+        _errorMessage = 'تعذر إرسال العرض في الوقت الحالي';
+      }
       notifyListeners();
-      return true;
+      return false;
     }
   }
 

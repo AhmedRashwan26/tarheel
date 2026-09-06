@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/trip_provider.dart';
+import '../auth/driver_auth_screen.dart';
 import '../client/notifications_screen.dart';
 
 class DriverFeedScreen extends StatefulWidget {
@@ -203,13 +204,16 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                       driverNotes: notesController.text.trim(),
                     );
 
-                    if (success && mounted) {
+                    if (!mounted) return;
+                    if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('🎉 تم إرسال عرض السعر للعميل بنجاح!'),
                           backgroundColor: AppColors.success,
                         ),
                       );
+                    } else {
+                      _showCompleteProfileMotivationalDialog(context, tripProvider.errorMessage);
                     }
                   },
                   child: const Text('تأكيد وإرسال العرض للعميل'),
@@ -218,6 +222,89 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showCompleteProfileMotivationalDialog(BuildContext context, String? reason) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: AppColors.cardDark,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.directions_car_filled_rounded,
+                    color: AppColors.primaryLight,
+                    size: 40,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '✨ خطوة بسيطة لبدء تقديم العروض!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                reason ?? 'أنت على بعد خطوة واحدة من المنافسة على هذا المشوار وجني أرباحك مباشرة. يرجى إكمال بيانات مركبتك ووثائقك الرسمية لتفعيل استقبال الطلبات.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const DriverAuthScreen(initialTabIndex: 1),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.app_registration_rounded, color: Colors.white),
+                label: const Text(
+                  'إكمال بيانات المركبة والتوثيق (دقيقة واحدة)',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text(
+                  'متابعة تصفح طلبات المشاوير',
+                  style: TextStyle(color: Colors.white38, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

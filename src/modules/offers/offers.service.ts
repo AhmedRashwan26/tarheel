@@ -24,6 +24,12 @@ export class OffersService {
       throw new ForbiddenException('لم يتم العثور على ملف السائق');
     }
 
+    if (!driverProfile.vehicle) {
+      throw new ForbiddenException(
+        'يرجى استكمال بيانات مركبتك ووثائقك الرسمية أولاً لتتمكن من تقديم العروض على هذا المشوار.',
+      );
+    }
+
     if (driverProfile.verificationStatus !== VerificationStatus.APPROVED) {
       throw new ForbiddenException(
         'حساب السائق الخاص بك قيد المراجعة أو غير معتمد حالياً. لا يمكنك تقديم عروض حتى يتم الاعتماد من الإدارة.',

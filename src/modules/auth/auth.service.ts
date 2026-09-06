@@ -186,7 +186,7 @@ export class AuthService {
             driverProfile: assignedRole === Role.DRIVER ? {
               create: {
                 nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
-                verificationStatus: VerificationStatus.APPROVED,
+                verificationStatus: VerificationStatus.PENDING,
               }
             } : undefined,
           },
@@ -201,7 +201,7 @@ export class AuthService {
             driverProfile: !user.driverProfile ? {
               create: {
                 nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
-                verificationStatus: VerificationStatus.APPROVED,
+                verificationStatus: VerificationStatus.PENDING,
               }
             } : undefined,
           },
