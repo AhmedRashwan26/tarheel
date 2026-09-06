@@ -51,7 +51,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
   void _showNewBidBottomSheet(Map<String, dynamic> data) {
     final offerPrice = data['offerPrice'] ?? data['offer']?['offerPrice'];
     final tripId = data['tripId'] ?? data['offer']?['tripId'];
-    final carPhotoFrontUrl = data['carPhotoFrontUrl']?.toString();
+    final carPhotoInteriorUrl = (data['carPhotoInteriorUrl'] ?? data['carPhotoFrontUrl'])?.toString();
     final carFullName = data['carFullName'] ?? '';
     final driverName = data['driverName'] ?? data['offer']?['driver']?['user']?['fullName'] ?? 'كابتن ترحيل';
 
@@ -68,7 +68,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
             BoxShadow(
               color: Colors.black54,
               blurRadius: 20,
-              offset: Offset(0, -5),
+              offset: Offset(0, -4),
             ),
           ],
         ),
@@ -80,36 +80,42 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
               child: Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Header: Driver + Price Badge
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.local_offer_rounded, color: AppColors.accent, size: 24),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.accent.withOpacity(0.2),
+                  child: const Icon(Icons.person_rounded, color: AppColors.accent, size: 28),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'وصلك عرض سعر جديد لمشوارك! 🎉',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      Text(
+                        driverName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'من الكابتن $driverName',
-                        style: const TextStyle(fontSize: 13, color: Colors.white60),
+                        carFullName.isNotEmpty ? carFullName : 'سائق ترحيل معتمد',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -118,14 +124,13 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.secondary),
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '$offerPrice ر.س',
                       style: const TextStyle(
-                        color: AppColors.secondary,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -135,8 +140,8 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Car front photo thumbnail
-            if (carPhotoFrontUrl != null && carPhotoFrontUrl.isNotEmpty) ...[
+            // Car interior photo thumbnail
+            if (carPhotoInteriorUrl != null && carPhotoInteriorUrl.isNotEmpty) ...[
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -146,9 +151,9 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                 child: Stack(
                   children: [
                     Image.network(
-                      carPhotoFrontUrl.startsWith('http')
-                          ? carPhotoFrontUrl
-                          : '${ApiEndpoints.baseDomain}$carPhotoFrontUrl',
+                      carPhotoInteriorUrl.startsWith('http')
+                          ? carPhotoInteriorUrl
+                          : '${ApiEndpoints.baseDomain}$carPhotoInteriorUrl',
                       height: 140,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -156,7 +161,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                         height: 100,
                         color: Colors.white10,
                         alignment: Alignment.center,
-                        child: const Icon(Icons.directions_car_rounded, color: Colors.white38, size: 40),
+                        child: const Icon(Icons.airline_seat_recline_normal_rounded, color: Colors.white38, size: 40),
                       ),
                     ),
                     Positioned(
@@ -174,7 +179,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
                             const Icon(Icons.verified_rounded, color: AppColors.accent, size: 14),
                             const SizedBox(width: 4),
                             Text(
-                              'صورة المركبة الأمامية: $carFullName',
+                              'مقصورة السيارة: $carFullName',
                               style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                           ],

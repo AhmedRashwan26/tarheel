@@ -80,8 +80,10 @@ export class OffersService {
       },
     });
 
-    // Prepare enriched bid metadata with vehicle front photo & specs
-    const carPhotoFrontUrl = driverProfile.vehicle?.photoFrontUrl || null;
+    // Prepare enriched bid metadata with vehicle interior photo & specs
+    // Note: Only vehicle interior photo is visible to client for privacy & comfort inspection.
+    // Exterior angle photos are strictly reserved for platform admin inspection.
+    const carPhotoInteriorUrl = driverProfile.vehicle?.photoInteriorUrl || null;
     const carBrand = driverProfile.vehicle?.brand || 'سيارة';
     const carModel = driverProfile.vehicle?.model || '';
     const carYear = driverProfile.vehicle?.year || '';
@@ -99,7 +101,8 @@ export class OffersService {
       carModel,
       carYear,
       carPlateNumber: driverProfile.vehicle?.plateNumber || '',
-      carPhotoFrontUrl,
+      carPhotoInteriorUrl,
+      carPhotoFrontUrl: null, // لم يعد مسموحاً بمشاركة صور الجوانب الخارجية مع العميل
       isAirConditioned: driverProfile.vehicle?.isAirConditioned ?? true,
       carCapacity: driverProfile.vehicle?.capacity || 4,
       pickupAddress: trip.pickupAddress,
@@ -130,7 +133,7 @@ export class OffersService {
         model: carModel,
         year: carYear,
         plateNumber: driverProfile.vehicle?.plateNumber || '',
-        photoFrontUrl: carPhotoFrontUrl,
+        photoInteriorUrl: carPhotoInteriorUrl,
         isAirConditioned: driverProfile.vehicle?.isAirConditioned ?? true,
         capacity: driverProfile.vehicle?.capacity || 4,
       },

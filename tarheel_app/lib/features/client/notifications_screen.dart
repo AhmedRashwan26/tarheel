@@ -286,12 +286,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final isRead = notif['isRead'] == true;
     final tripId = metadata?['tripId'];
     final offerPrice = metadata?['offerPrice'];
-    final carPhotoFrontUrl = metadata?['carPhotoFrontUrl']?.toString();
+    final carPhotoInteriorUrl = (metadata?['carPhotoInteriorUrl'] ?? metadata?['carPhotoFrontUrl'])?.toString();
     final carFullName = metadata?['carFullName'] ?? '';
     final driverName = metadata?['driverName'] ?? '';
     final driverRating = metadata?['driverRating'];
 
-    final hasFrontPhoto = carPhotoFrontUrl != null && carPhotoFrontUrl.isNotEmpty;
+    final hasInteriorPhoto = carPhotoInteriorUrl != null && carPhotoInteriorUrl.isNotEmpty;
 
     final isChatMessage = notif['type'] == 'CHAT_MESSAGE_RECEIVED';
     final isBidAccepted = notif['type'] == 'BID_ACCEPTED';
@@ -472,21 +472,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     child: Row(
                       children: [
-                        if (hasFrontPhoto)
+                        if (hasInteriorPhoto)
                           GestureDetector(
                             onTap: () => _showImageDialog(
                               context,
-                              carPhotoFrontUrl,
-                              'الصورة الأمامية لسيارة $carFullName',
+                              carPhotoInteriorUrl,
+                              'صورة مقصورة سيارة $carFullName من الداخل',
                             ),
                             child: Stack(
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.network(
-                                    carPhotoFrontUrl.startsWith('http')
-                                        ? carPhotoFrontUrl
-                                        : '${ApiEndpoints.baseDomain}$carPhotoFrontUrl',
+                                    carPhotoInteriorUrl.startsWith('http')
+                                        ? carPhotoInteriorUrl
+                                        : '${ApiEndpoints.baseDomain}$carPhotoInteriorUrl',
                                     width: 72,
                                     height: 52,
                                     fit: BoxFit.cover,
@@ -494,7 +494,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       width: 72,
                                       height: 52,
                                       color: Colors.white10,
-                                      child: const Icon(Icons.directions_car_rounded, color: Colors.white38, size: 28),
+                                      child: const Icon(Icons.airline_seat_recline_normal_rounded, color: Colors.white38, size: 28),
                                     ),
                                   ),
                                 ),

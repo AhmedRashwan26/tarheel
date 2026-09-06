@@ -10,8 +10,11 @@ import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import * as path from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { Public } from '../../common/decorators/roles.decorator';
+import { UploadsOptimizerService } from './uploads-optimizer.service';
+import { StorageService } from './storage.service';
 
 const uploadDirectory = './uploads';
 if (!existsSync(uploadDirectory)) {
@@ -51,10 +54,15 @@ const mediaFileFilter = (req: any, file: any, cb: any) => {
 @ApiTags('رفع الملفات والتسجيلات الصوتية (Uploads & Voice Notes)')
 @Controller('uploads')
 export class UploadsController {
+  constructor(
+    private readonly optimizerService: UploadsOptimizerService,
+    private readonly storageService: StorageService,
+  ) {}
+
   @Public()
   @Post('single')
   @ApiOperation({
-    summary: 'رفع ملف فردي (رسالة صوتية Voice note، شهادة آيبان PDF، رخصة، هوية، صورة سيارة)',
+    summary: 'رفع ملف فردي مع الضغط التلقائي للصور بصيغة WebP وتوفير 85% من المساحة',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -72,25 +80,37 @@ export class UploadsController {
       limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
     }),
   )
-  uploadSingle(@UploadedFile() file: Express.Multer.File) {
+  async uploadSingle(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('لم يتم إرسال أي ملف');
     }
-    const fileUrl = `/uploads/${file.filename}`;
+
+    // 1. الضغط والتحسين التلقائي (تحويل الصور إلى WebP فائقة الخفة)
+    const optimized = await this.optimizerService.optimizeFile(file);
+
+    // 2. إيداع الملف في التخزين المناسب (محلي أو سحابي)
+    const storageRes = await this.storageService.uploadFile(
+      path.join(uploadDirectory, optimized.filename),
+      optimized.filename,
+      optimized.mimetype,
+    );
+
     return {
-      message: 'تم رفع الملف بنجاح',
-      fileName: file.filename,
-      originalName: file.originalname,
-      url: fileUrl,
-      size: file.size,
-      mimeType: file.mimetype,
+      message: 'تم رفع الملف ومعالجته وضغطه تلقائياً بنجاح',
+      fileName: optimized.filename,
+      originalName: optimized.originalName,
+      url: storageRes.url,
+      size: optimized.size,
+      mimeType: optimized.mimetype,
+      isCompressed: optimized.isCompressed,
+      storageType: storageRes.storageType,
     };
   }
 
   @Public()
   @Post('vehicle-photos')
   @ApiOperation({
-    summary: 'رفع صور السيارة الأربعة مع رخصة السير والهوية وشهادة الحساب البنكي PDF دفعة واحدة',
+    summary: 'رفع صور السيارة الأربعة مع رخصة السير والهوية وشهادة الحساب البنكي PDF دفعة واحدة مع الضغط التلقائي',
   })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -113,7 +133,7 @@ export class UploadsController {
       },
     ),
   )
-  uploadVehiclePhotos(
+  async uploadVehiclePhotos(
     @UploadedFiles()
     files: {
       photoFront?: Express.Multer.File[];
@@ -128,18 +148,32 @@ export class UploadsController {
     },
   ) {
     const response: Record<string, string> = {};
-    if (files.photoFront?.[0]) response.photoFrontUrl = `/uploads/${files.photoFront[0].filename}`;
-    if (files.photoBack?.[0]) response.photoBackUrl = `/uploads/${files.photoBack[0].filename}`;
-    if (files.photoRight?.[0]) response.photoRightUrl = `/uploads/${files.photoRight[0].filename}`;
-    if (files.photoLeft?.[0]) response.photoLeftUrl = `/uploads/${files.photoLeft[0].filename}`;
-    if (files.photoInterior?.[0]) response.photoInteriorUrl = `/uploads/${files.photoInterior[0].filename}`;
-    if (files.vehicleRegistration?.[0]) response.vehicleRegistrationUrl = `/uploads/${files.vehicleRegistration[0].filename}`;
-    if (files.driverLicense?.[0]) response.driverLicenseUrl = `/uploads/${files.driverLicense[0].filename}`;
-    if (files.idCardPhoto?.[0]) response.idCardPhotoUrl = `/uploads/${files.idCardPhoto[0].filename}`;
-    if (files.bankCertificate?.[0]) response.bankCertificatePdfUrl = `/uploads/${files.bankCertificate[0].filename}`;
+
+    const processField = async (fieldFiles?: Express.Multer.File[]) => {
+      if (fieldFiles?.[0]) {
+        const optimized = await this.optimizerService.optimizeFile(fieldFiles[0]);
+        const storageRes = await this.storageService.uploadFile(
+          path.join(uploadDirectory, optimized.filename),
+          optimized.filename,
+          optimized.mimetype,
+        );
+        return storageRes.url;
+      }
+      return undefined;
+    };
+
+    if (files.photoFront?.[0]) response.photoFrontUrl = (await processField(files.photoFront))!;
+    if (files.photoBack?.[0]) response.photoBackUrl = (await processField(files.photoBack))!;
+    if (files.photoRight?.[0]) response.photoRightUrl = (await processField(files.photoRight))!;
+    if (files.photoLeft?.[0]) response.photoLeftUrl = (await processField(files.photoLeft))!;
+    if (files.photoInterior?.[0]) response.photoInteriorUrl = (await processField(files.photoInterior))!;
+    if (files.vehicleRegistration?.[0]) response.vehicleRegistrationUrl = (await processField(files.vehicleRegistration))!;
+    if (files.driverLicense?.[0]) response.driverLicenseUrl = (await processField(files.driverLicense))!;
+    if (files.idCardPhoto?.[0]) response.idCardPhotoUrl = (await processField(files.idCardPhoto))!;
+    if (files.bankCertificate?.[0]) response.bankCertificatePdfUrl = (await processField(files.bankCertificate))!;
 
     return {
-      message: 'تم رفع مستندات وصور السائق وشهادة الحساب البنكي بنجاح',
+      message: 'تم رفع مستندات وصور السائق وضغطها تلقائياً بنجاح',
       uploadedUrls: response,
     };
   }

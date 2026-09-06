@@ -63,6 +63,7 @@ export class NotificationsService {
       year?: string | number;
       plateNumber?: string;
       photoFrontUrl?: string | null;
+      photoInteriorUrl?: string | null;
       isAirConditioned?: boolean;
       capacity?: number;
     };
@@ -73,12 +74,13 @@ export class NotificationsService {
     const appBaseUrl = process.env.FRONTEND_APP_URL || 'http://localhost:8085';
     const appOfferUrl = `${appBaseUrl}/#/offers?tripId=${trip.id}`;
     const baseDomain = process.env.API_BASE_URL || 'http://localhost:3000';
-    const fullPhotoFrontUrl = vehicle.photoFrontUrl
-      ? (vehicle.photoFrontUrl.startsWith('http') ? vehicle.photoFrontUrl : `${baseDomain}${vehicle.photoFrontUrl}`)
+    const interiorPhoto = vehicle.photoInteriorUrl || vehicle.photoFrontUrl;
+    const fullPhotoInteriorUrl = interiorPhoto
+      ? (interiorPhoto.startsWith('http') ? interiorPhoto : `${baseDomain}${interiorPhoto}`)
       : null;
 
     const notifTitle = `🚗 تلقيت عرض سعر جديد بقيمة ${offerPrice} ر.س!`;
-    const notifMessage = `قدم الكابتن ${driver.fullName} عرضاً بقيمة ${offerPrice} ر.س بسيارة (${vehicle.fullName}) لمشوارك من ${trip.pickupAddress} إلى ${trip.dropoffAddress}. اضغط لمعاينة صورة السيارة وتفاصيل العرض.`;
+    const notifMessage = `قدم الكابتن ${driver.fullName} عرضاً بقيمة ${offerPrice} ر.س بسيارة (${vehicle.fullName}) لمشوارك من ${trip.pickupAddress} إلى ${trip.dropoffAddress}. اضغط لمعاينة مقصورة السيارة من الداخل وتفاصيل العرض.`;
 
     const metadata = {
       tripId: trip.id,
@@ -92,7 +94,8 @@ export class NotificationsService {
       carModel: vehicle.model || '',
       carYear: vehicle.year || '',
       carPlateNumber: vehicle.plateNumber || '',
-      carPhotoFrontUrl: vehicle.photoFrontUrl || '',
+      carPhotoInteriorUrl: vehicle.photoInteriorUrl || '',
+      carPhotoFrontUrl: '', // محجوبة لحماية خصوصية فحص جوانب السيارة
       isAirConditioned: vehicle.isAirConditioned ?? true,
       carCapacity: vehicle.capacity || 4,
       pickupAddress: trip.pickupAddress,
@@ -162,12 +165,12 @@ export class NotificationsService {
               </div>
 
               ${
-                fullPhotoFrontUrl
+                fullPhotoInteriorUrl
                   ? `
-              <!-- Car Photo Preview -->
+              <!-- Car Interior Photo Preview -->
               <div style="margin-bottom: 24px; text-align: center;">
-                <p style="font-size: 13px; font-weight: bold; color: #334155; margin-bottom: 8px;">📸 معاينة صورة السيارة الأمامية التي رفعها السائق:</p>
-                <img src="${fullPhotoFrontUrl}" alt="صورة السيارة الأمامية" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1;" />
+                <p style="font-size: 13px; font-weight: bold; color: #334155; margin-bottom: 8px;">💺 معاينة مقصورة السيارة والفرش الداخلي:</p>
+                <img src="${fullPhotoInteriorUrl}" alt="صورة مقصورة السيارة من الداخل" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1;" />
               </div>
               `
                   : ''
@@ -176,7 +179,7 @@ export class NotificationsService {
               <!-- CTA Button -->
               <div style="text-align: center; margin: 25px 0 10px 0;">
                 <a href="${appOfferUrl}" style="background-color: #F15A24; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block;">
-                  معاينة العرض وصور السيارة في التطبيق ⬅️
+                  معاينة العرض ومقصورة السيارة في التطبيق ⬅️
                 </a>
               </div>
             </div>

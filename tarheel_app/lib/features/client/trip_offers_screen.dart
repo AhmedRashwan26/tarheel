@@ -273,7 +273,7 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
           ),
           const Divider(height: 24, color: AppColors.cardBorder),
 
-          // Front Car Photo Preview Card
+          // Interior Car Photo Preview Card
           GestureDetector(
             onTap: () => _showVehiclePhotosDialog(context, vehicle, driverUser),
             child: Container(
@@ -288,7 +288,7 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
                   Positioned.fill(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: _buildVehicleImage(vehicle['photoFrontUrl']),
+                      child: _buildVehicleImage(vehicle['photoInteriorUrl']),
                     ),
                   ),
                   Positioned(
@@ -303,10 +303,10 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.directions_car_rounded, color: Colors.white, size: 13),
+                          Icon(Icons.airline_seat_recline_normal_rounded, color: Colors.white, size: 13),
                           SizedBox(width: 4),
                           Text(
-                            'صورة واجهة السيارة',
+                            'صورة مقصورة السيارة من الداخل',
                             style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -325,10 +325,10 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.photo_library_rounded, color: Colors.white, size: 13),
+                          Icon(Icons.zoom_in_rounded, color: Colors.white, size: 13),
                           SizedBox(width: 4),
                           Text(
-                            'معاينة كافة صور السيارة (5 صور)',
+                            'معاينة مقصورة السيارة والفرش الداخلي 💺',
                             style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -404,9 +404,9 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.directions_car_filled_rounded, size: 48, color: Colors.grey.shade400),
+            Icon(Icons.airline_seat_recline_normal_rounded, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 6),
-            Text('صورة السيارة غير مرفوعة بعد', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            Text('صورة المقصورة الداخلية غير مرفوعة', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
           ],
         ),
       );
@@ -436,7 +436,7 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
             children: [
               Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey.shade400),
               const SizedBox(height: 4),
-              Text('صورة السيارة الأمامية', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              Text('صورة مقصورة السيارة من الداخل', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
             ],
           ),
         );
@@ -446,11 +446,12 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
 
   void _showVehiclePhotosDialog(BuildContext context, Map<String, dynamic> vehicle, Map<String, dynamic> driverUser) {
     final photos = [
-      {'title': 'الواجهة الأمامية', 'url': vehicle['photoFrontUrl'], 'icon': Icons.directions_car_rounded},
-      {'title': 'الواجهة الخلفية', 'url': vehicle['photoBackUrl'], 'icon': Icons.car_crash_rounded},
-      {'title': 'الجانب الأيمن', 'url': vehicle['photoRightUrl'], 'icon': Icons.swap_horiz_rounded},
-      {'title': 'الجانب الأيسر', 'url': vehicle['photoLeftUrl'], 'icon': Icons.swap_horiz_rounded},
-      {'title': 'المقصورة والفرش الداخلي', 'url': vehicle['photoInteriorUrl'], 'icon': Icons.airline_seat_recline_normal_rounded},
+      {
+        'title': 'مقصورة السيارة والمقاعد والفرش الداخلي',
+        'url': vehicle['photoInteriorUrl'],
+        'icon': Icons.airline_seat_recline_normal_rounded,
+        'subtitle': 'تتيح لك التأكد من نظافة المقاعد، الفرش الداخلي، وجاهزية التكييف لراحة المشوار',
+      },
     ];
 
     showModalBottomSheet(
@@ -494,6 +495,31 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
               ),
             ),
             const Divider(),
+
+            // Privacy & Safety Guarantee Notice
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'لحماية خصوصية وأمان الجميع، تقتصر معاينة العميل على صورة مقصورة السيارة من الداخل للتأكد من الراحة والنظافة، بينما تم فحص واعتماد صور زوايا السيارة الخارجية ورخصة القيادة والاستمارة رسمياً من قِبل إدارة المنصة.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF166534), height: 1.4, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -515,18 +541,30 @@ class _TripOffersScreenState extends State<TripOffersScreen> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(item['icon'] as IconData, size: 18, color: AppColors.primary),
-                              const SizedBox(width: 8),
-                              Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              Row(
+                                children: [
+                                  Icon(item['icon'] as IconData, size: 18, color: AppColors.primary),
+                                  const SizedBox(width: 8),
+                                  Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                ],
+                              ),
+                              if (item['subtitle'] != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  item['subtitle'] as String,
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                ),
+                              ],
                             ],
                           ),
                         ),
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
                           child: SizedBox(
-                            height: 200,
+                            height: 230,
                             child: _buildVehicleImage(item['url'] as String?),
                           ),
                         ),

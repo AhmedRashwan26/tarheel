@@ -16,6 +16,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AdminModule } from './modules/admin/admin.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { SupportModule } from './modules/support/support.module';
+import { SystemModule } from './modules/system/system.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -30,6 +31,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     ScheduleModule.forRoot(),
     PrismaModule,
     NotificationsModule,
+    SystemModule,
     AuthModule,
     UsersModule,
     DriversModule,
