@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterClientDto } from './dto/register-client.dto';
@@ -16,10 +16,11 @@ export class AuthController {
   @Public()
   @Post('send-otp')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'إرسال رمز تحقق OTP إلى رقم الجوال أو الإيميل' })
+  @ApiOperation({ summary: 'إرسال رمز تحقق OTP إلى رقم الجوال أو الإيميل مع تقييد الطلبات' })
   @ApiResponse({ status: 200, description: 'تم إرسال رمز التحقق بنجاح' })
-  sendOtp(@Body() dto: LoginPhoneDto) {
-    return this.authService.sendOtp(dto);
+  sendOtp(@Body() dto: LoginPhoneDto, @Req() req: any) {
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+    return this.authService.sendOtp(dto, clientIp);
   }
 
   @Public()
@@ -60,10 +61,15 @@ export class AuthController {
   @Post('bind-phone/send-otp')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'إرسال رمز OTP لتأكيد وربط رقم الجوال بالحساب' })
+  @ApiOperation({ summary: 'إرسال رمز OTP لتأكيد وربط رقم الجوال بالحساب مع تقييد الطلبات' })
   @ApiResponse({ status: 200, description: 'تم إرسال رمز التحقق إلى رقم الجوال' })
-  sendBindPhoneOtp(@CurrentUser('id') userId: string, @Body() dto: SendBindPhoneOtpDto) {
-    return this.authService.sendBindPhoneOtp(userId, dto);
+  sendBindPhoneOtp(
+    @CurrentUser('id') userId: string,
+    @Body() dto: SendBindPhoneOtpDto,
+    @Req() req: any,
+  ) {
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+    return this.authService.sendBindPhoneOtp(userId, dto, clientIp);
   }
 
   @Post('bind-phone/verify')

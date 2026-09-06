@@ -128,4 +128,18 @@ export class AdminController {
   getUserActivityHistory(@Param('id') userId: string) {
     return this.adminService.getUserActivityHistory(userId);
   }
+
+  // ==================== WHATSAPP FAILOVER & BACKUP INSTANCE ====================
+
+  @Get('whatsapp/instance-status')
+  @ApiOperation({ summary: 'معاينة حالة جلسات ورقم الواتساب الأساسي والاحتياطي' })
+  getWhatsAppInstanceStatus() {
+    return this.adminService.getWhatsAppInstanceStatus();
+  }
+
+  @Post('whatsapp/switch-instance')
+  @ApiOperation({ summary: 'التبديل الفوري بين رقم الواتساب الأساسي والاحتياطي بضغطة زر دون توقف' })
+  switchWhatsAppInstance(@Body('instanceName') instanceName?: string) {
+    return this.adminService.switchWhatsAppInstance(instanceName);
+  }
 }

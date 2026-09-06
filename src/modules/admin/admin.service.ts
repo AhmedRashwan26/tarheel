@@ -666,4 +666,22 @@ export class AdminService {
 
     return user;
   }
+
+  getWhatsAppInstanceStatus() {
+    return {
+      activeInstance: this.otpSender.getActiveInstance(),
+      backupInstance: this.otpSender.getBackupInstance(),
+      evolutionUrl: process.env.EVOLUTION_API_URL || 'Not configured',
+      isBackupConfigured: Boolean(this.otpSender.getBackupInstance()),
+    };
+  }
+
+  switchWhatsAppInstance(instanceName?: string) {
+    const result = this.otpSender.switchActiveInstance(instanceName);
+    return {
+      success: true,
+      message: `تم التبديل الفوري بنجاح! جلسة الواتساب النشطة حالياً هي [${result.current}].`,
+      ...result,
+    };
+  }
 }

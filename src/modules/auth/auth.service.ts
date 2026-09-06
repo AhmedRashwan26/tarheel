@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterClientDto } from './dto/register-client.dto';
@@ -10,14 +10,70 @@ import { OtpSenderService } from '../notifications/otp-sender.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   // Key: identifier (phone or email), Value: { code: string, expiresAt: number }
   private static otpStore = new Map<string, { code: string; expiresAt: number }>();
+
+  // Rate Limiting Stores
+  private static ipRateLimitStore = new Map<string, { attempts: number[]; bannedUntil?: number }>();
+  private static identifierCooldownStore = new Map<string, number>();
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private otpSender: OtpSenderService,
   ) {}
+
+  private checkRateLimits(identifier: string, clientIp: string) {
+    const now = Date.now();
+
+    // 1. IP Ban check (15 minutes ban)
+    const ipRecord = AuthService.ipRateLimitStore.get(clientIp) || { attempts: [] };
+    if (ipRecord.bannedUntil && now < ipRecord.bannedUntil) {
+      const remainingMinutes = Math.ceil((ipRecord.bannedUntil - now) / 60000);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message: `تم حظر المحاولات مؤقتاً لتجاوز الحد المسموح به (3 محاولات خلال 5 دقائق). يرجى المحاولة بعد ${remainingMinutes} دقيقة أو استخدام خيار تسجيل الدخول عبر Google.`,
+          retryAfterMinutes: remainingMinutes,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    // 2. Cooldown check per identifier (60 seconds)
+    const lastRequestedAt = AuthService.identifierCooldownStore.get(identifier);
+    if (lastRequestedAt && now - lastRequestedAt < 60 * 1000) {
+      const remainingSec = Math.ceil((60000 - (now - lastRequestedAt)) / 1000);
+      throw new BadRequestException(`يرجى الانتظار ${remainingSec} ثانية قبل طلب رمز تحقق جديد.`);
+    }
+
+    // 3. IP Attempt sliding window check (Max 3 attempts in 5 minutes)
+    ipRecord.attempts = ipRecord.attempts.filter(t => now - t < 5 * 60 * 1000);
+    if (ipRecord.attempts.length >= 3) {
+      // Apply 15-minute ban
+      ipRecord.bannedUntil = now + 15 * 60 * 1000;
+      AuthService.ipRateLimitStore.set(clientIp, ipRecord);
+      this.logger.warn(`🚫 Rate limit exceeded: IP [${clientIp}] banned for 15 minutes.`);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message: 'تم حظر المحاولات مؤقتاً لتجاوز الحد المسموح به (3 محاولات خلال 5 دقائق). يرجى المحاولة بعد 15 دقيقة أو استخدام خيار تسجيل الدخول عبر Google.',
+          retryAfterMinutes: 15,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
+  private recordRateLimitAttempt(identifier: string, clientIp: string) {
+    const now = Date.now();
+    const ipRecord = AuthService.ipRateLimitStore.get(clientIp) || { attempts: [] };
+    ipRecord.attempts.push(now);
+    AuthService.ipRateLimitStore.set(clientIp, ipRecord);
+    AuthService.identifierCooldownStore.set(identifier, now);
+  }
 
   private normalizeIdentifier(raw: string): string {
     const trimmed = raw.trim();
@@ -43,9 +99,12 @@ export class AuthService {
     return clean || trimmed;
   }
 
-  async sendOtp(dto: LoginPhoneDto) {
+  async sendOtp(dto: LoginPhoneDto, clientIp: string = '127.0.0.1') {
     const isEmail = dto.identifier.includes('@');
     const normalizedIdentifier = this.normalizeIdentifier(dto.identifier);
+
+    // Rate Limiting Enforcement (Cooldown 60s & Max 3 attempts/5 min)
+    this.checkRateLimits(normalizedIdentifier, clientIp);
     
     // Generate real random 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -82,19 +141,41 @@ export class AuthService {
       selectedChannel = OtpDeliveryChannel.EMAIL;
     }
 
-    // Send via the selected channel
+    let sent = false;
+    let fallbackToEmailUsed = false;
+    let fallbackEmailAddress: string | null = null;
+
+    // Send via the selected channel with automatic Email failover
     if (selectedChannel === OtpDeliveryChannel.EMAIL) {
-      const sent = await this.otpSender.sendEmailOtp(normalizedIdentifier, otpCode, user?.fullName);
+      sent = await this.otpSender.sendEmailOtp(normalizedIdentifier, otpCode, user?.fullName);
       if (!sent) {
         throw new BadRequestException('تعذر إرسال الرمز إلى البريد الإلكتروني. يرجى التأكد من صحة البريد أو تجربة الواتساب');
       }
     } else {
-      // Always use WhatsApp for phone numbers (SMS disabled)
-      const sent = await this.otpSender.sendWhatsAppOtp(normalizedIdentifier, otpCode);
+      // 1. Try sending via WhatsApp (with backup instance support)
+      sent = await this.otpSender.sendWhatsAppOtp(normalizedIdentifier, otpCode);
+
+      // 2. Automatic Failover to registered Email if WhatsApp delivery fails
+      if (!sent && user?.email) {
+        this.logger.warn(`WhatsApp delivery failed for [${normalizedIdentifier}]. Initiating automatic failover to registered email [${user.email}]...`);
+        const emailSent = await this.otpSender.sendEmailOtp(user.email, otpCode, user.fullName);
+        if (emailSent) {
+          sent = true;
+          fallbackToEmailUsed = true;
+          fallbackEmailAddress = user.email;
+          AuthService.otpStore.set(user.email.toLowerCase(), otpData);
+        }
+      }
+
       if (!sent) {
-        throw new BadRequestException('تعذر إرسال الرمز عبر الواتساب. يرجى التأكد من الرقم أو تجربة البريد الإلكتروني');
+        throw new BadRequestException(
+          'تعذر تسليم رمز التحقق عبر الواتساب حالياً. يرجى اختيار قناة (عبر الإيميل) أو المتابعة باستخدام حساب Google.',
+        );
       }
     }
+
+    // Record valid attempt only after sending
+    this.recordRateLimitAttempt(normalizedIdentifier, clientIp);
 
     const channelNamesAr = {
       EMAIL: 'البريد الإلكتروني',
@@ -102,13 +183,19 @@ export class AuthService {
       SMS: 'الواتساب',
     };
 
+    let responseMessage = `تم إرسال رمز التحقق بنجاح عبر (${channelNamesAr[selectedChannel] || 'الواتساب'})`;
+    if (fallbackToEmailUsed && fallbackEmailAddress) {
+      responseMessage = `تعذر إرسال الرمز عبر الواتساب، وتم إرساله تلقائياً إلى بريدك الإلكتروني المسجل (${fallbackEmailAddress})`;
+    }
+
     return {
-      message: `تم إرسال رمز التحقق بنجاح عبر (${channelNamesAr[selectedChannel] || 'الواتساب'})`,
+      message: responseMessage,
       identifier: dto.identifier,
       normalizedIdentifier,
-      channel: selectedChannel === OtpDeliveryChannel.EMAIL ? OtpDeliveryChannel.EMAIL : OtpDeliveryChannel.WHATSAPP,
+      channel: fallbackToEmailUsed ? OtpDeliveryChannel.EMAIL : (selectedChannel === OtpDeliveryChannel.EMAIL ? OtpDeliveryChannel.EMAIL : OtpDeliveryChannel.WHATSAPP),
       isRegistered: !!user,
       role: user?.role || null,
+      fallbackUsed: fallbackToEmailUsed,
     };
   }
 
@@ -348,11 +435,14 @@ export class AuthService {
     };
   }
 
-  async sendBindPhoneOtp(userId: string, dto: SendBindPhoneOtpDto) {
+  async sendBindPhoneOtp(userId: string, dto: SendBindPhoneOtpDto, clientIp: string = '127.0.0.1') {
     const cleanPhone = this.normalizeIdentifier(dto.phoneNumber);
     if (!cleanPhone || cleanPhone.includes('@')) {
       throw new BadRequestException('رقم الجوال المدخل غير صحيح');
     }
+
+    // Rate Limiting check (Cooldown 60s & Max 3 attempts/5 min)
+    this.checkRateLimits(cleanPhone, clientIp);
 
     const existing = await this.prisma.user.findFirst({
       where: {
@@ -374,11 +464,32 @@ export class AuthService {
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
 
-    await this.otpSender.sendWhatsAppOtp(cleanPhone, code);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    let sent = await this.otpSender.sendWhatsAppOtp(cleanPhone, code);
+    let fallbackUsed = false;
+
+    // Automatic email fallback if WhatsApp delivery fails and user has email
+    if (!sent && user?.email) {
+      this.logger.warn(`WhatsApp send failed for bind-phone to [${cleanPhone}]. Falling back to user email [${user.email}]...`);
+      const emailSent = await this.otpSender.sendEmailOtp(user.email, code, user.fullName);
+      if (emailSent) {
+        sent = true;
+        fallbackUsed = true;
+      }
+    }
+
+    if (!sent) {
+      throw new BadRequestException('تعذر إرسال رمز التحقق عبر الواتساب حالياً. يرجى التأكد من صحة رقم الجوال والمحاولة مجدداً.');
+    }
+
+    this.recordRateLimitAttempt(cleanPhone, clientIp);
 
     return {
       success: true,
-      message: 'تم إرسال رمز التحقق إلى رقم جوالك بنجاح عبر الواتساب',
+      message: fallbackUsed
+        ? `تعذر إرسال الرمز عبر الواتساب، وتم إرساله تلقائياً إلى بريدك الإلكتروني (${user?.email})`
+        : 'تم إرسال رمز التحقق إلى رقم جوالك بنجاح عبر الواتساب',
+      fallbackUsed,
     };
   }
 

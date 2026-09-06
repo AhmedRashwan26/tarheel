@@ -83,9 +83,77 @@ export class OtpSenderService {
     };
   }
 
+  private activeEvolutionInstance: string = process.env.EVOLUTION_INSTANCE || 'tarheel';
+  private backupEvolutionInstance: string = process.env.EVOLUTION_BACKUP_INSTANCE || 'tarheel_backup';
+
+  public getActiveInstance(): string {
+    return this.activeEvolutionInstance;
+  }
+
+  public getBackupInstance(): string {
+    return this.backupEvolutionInstance;
+  }
+
+  public switchActiveInstance(newInstance?: string): { current: string; previous: string } {
+    const previous = this.activeEvolutionInstance;
+    if (newInstance && newInstance.trim()) {
+      this.activeEvolutionInstance = newInstance.trim();
+    } else {
+      this.activeEvolutionInstance =
+        this.activeEvolutionInstance === (process.env.EVOLUTION_INSTANCE || 'tarheel')
+          ? this.backupEvolutionInstance
+          : (process.env.EVOLUTION_INSTANCE || 'tarheel');
+    }
+    this.logger.log(`Switched active WhatsApp instance from [${previous}] to [${this.activeEvolutionInstance}]`);
+    return { current: this.activeEvolutionInstance, previous };
+  }
+
+  /**
+   * دالة إرسال عبر خادم Evolution API تدعم النسختين v1 و v2
+   */
+  private async sendViaEvolution(instance: string, cleanPhone: string, message: string): Promise<boolean> {
+    const evolutionUrl = process.env.EVOLUTION_API_URL;
+    const evolutionKey = process.env.EVOLUTION_API_KEY || 'Tarheel_Secure_Evolution_Key_2026';
+    if (!evolutionUrl) return false;
+
+    try {
+      const evoEndpoint = `${evolutionUrl.replace(/\/+$/, '')}/message/sendText/${instance}`;
+      const response = await fetch(evoEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': evolutionKey,
+        },
+        body: JSON.stringify({
+          number: cleanPhone,
+          text: message,
+          textMessage: {
+            text: message,
+          },
+          options: {
+            delay: 1200,
+            presence: 'composing',
+          },
+        }),
+      });
+
+      const resData = await response.json();
+      if (response.ok && (resData?.key || resData?.message || resData?.status === 'SUCCESS' || resData?.status === 200)) {
+        this.logger.log(`✅ [Hetzner Evolution API - Instance: ${instance}] WhatsApp message sent successfully to ${cleanPhone}`);
+        return true;
+      } else {
+        this.logger.warn(`Evolution API [${instance}] response: ${JSON.stringify(resData)}`);
+        return false;
+      }
+    } catch (evoErr: any) {
+      this.logger.warn(`Failed to send via Hetzner Evolution API [${instance}]: ${evoErr.message}`);
+      return false;
+    }
+  }
+
   /**
    * إرسال رسالة نصية عامة عبر الواتساب (WhatsApp Message)
-   * يدعم Evolution API على خادم Hetzner أو بوابة Baileys أو Meta Cloud API
+   * يدعم Evolution API الأساسي والاحتياطي على خادم Hetzner أو بوابة Baileys أو Meta Cloud API
    */
   async sendWhatsAppMessage(phoneNumber: string, message: string): Promise<boolean> {
     const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL;
@@ -93,45 +161,22 @@ export class OtpSenderService {
     const whatsappToken = process.env.WHATSAPP_API_TOKEN;
     const whatsappPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-    this.logger.log(`[WHATSAPP MESSAGE] Sending message to [${phoneNumber}]`);
+    this.logger.log(`[WHATSAPP MESSAGE] Sending message to [${phoneNumber}] via active instance [${this.activeEvolutionInstance}]`);
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
 
-    // 0. Try Evolution API on Hetzner Server (Enterprise Priority)
-    const evolutionUrl = process.env.EVOLUTION_API_URL;
-    const evolutionKey = process.env.EVOLUTION_API_KEY || 'Tarheel_Secure_Evolution_Key_2026';
-    const evolutionInstance = process.env.EVOLUTION_INSTANCE || 'tarheel';
+    // 0. Try Primary Evolution API instance
+    const primarySuccess = await this.sendViaEvolution(this.activeEvolutionInstance, cleanPhone, message);
+    if (primarySuccess) {
+      return true;
+    }
 
-    if (evolutionUrl) {
-      try {
-        const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-        const evoEndpoint = `${evolutionUrl.replace(/\/+$/, '')}/message/sendText/${evolutionInstance}`;
-        
-        const response = await fetch(evoEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': evolutionKey,
-          },
-          body: JSON.stringify({
-            number: cleanPhone,
-            options: {
-              delay: 1200,
-              presence: 'composing',
-            },
-            textMessage: {
-              text: message,
-            },
-          }),
-        });
-
-        const resData = await response.json();
-        if (response.ok && (resData?.key || resData?.message || resData?.status === 'SUCCESS' || resData?.status === 200)) {
-          this.logger.log(`✅ [Hetzner Evolution API] WhatsApp message sent successfully to ${cleanPhone}`);
-          return true;
-        } else {
-          this.logger.warn(`Evolution API response: ${JSON.stringify(resData)}`);
-        }
-      } catch (evoErr) {
-        this.logger.warn(`Failed to send via Hetzner Evolution API: ${evoErr.message}`);
+    // 0.1 Failover: Try Backup Evolution API instance if configured and different from active
+    if (this.backupEvolutionInstance && this.backupEvolutionInstance !== this.activeEvolutionInstance) {
+      this.logger.warn(`⚠️ Primary instance [${this.activeEvolutionInstance}] failed. Initiating automatic instant failover to backup instance [${this.backupEvolutionInstance}]...`);
+      const backupSuccess = await this.sendViaEvolution(this.backupEvolutionInstance, cleanPhone, message);
+      if (backupSuccess) {
+        this.logger.log(`✅ [Failover Succeeded] WhatsApp message sent via backup instance [${this.backupEvolutionInstance}]`);
+        return true;
       }
     }
 
