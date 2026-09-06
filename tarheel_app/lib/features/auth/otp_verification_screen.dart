@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../client/client_main_screen.dart';
 import '../driver/driver_main_screen.dart';
+import 'link_phone_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String identifier;
@@ -62,6 +63,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           (route) => false,
         );
       } else {
+        // Enforce phone verification if user logged in with email and hasn't linked a phone
+        if (!auth.hasVerifiedPhone) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => LinkPhoneScreen(role: targetRole ?? 'CLIENT'),
+            ),
+            (route) => false,
+          );
+          return;
+        }
+
         final isDriverMode = (targetRole == 'DRIVER') || (auth.userRole == 'DRIVER') || auth.isDriver;
         if (isDriverMode) {
           auth.setRole('DRIVER');

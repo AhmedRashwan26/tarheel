@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/upload_service.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
+import 'widgets/google_sign_in_button.dart';
 import '../terms/terms_and_conditions_screen.dart';
 
 class DriverAuthScreen extends StatefulWidget {
@@ -659,6 +660,22 @@ class _DriverAuthScreenState extends State<DriverAuthScreen> with SingleTickerPr
                 )
               : const Text('إرسال رمز التحقق (OTP)'),
         ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            const Expanded(child: Divider(color: AppColors.cardBorder)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                'أو',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+            ),
+            const Expanded(child: Divider(color: AppColors.cardBorder)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const GoogleSignInButton(role: 'DRIVER'),
       ],
     );
   }

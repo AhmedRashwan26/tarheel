@@ -12,6 +12,11 @@ export class TripsService {
   ) {}
 
   async createTripRequest(clientId: string, dto: CreateTripRequestDto) {
+    const client = await this.prisma.user.findUnique({ where: { id: clientId } });
+    if (!client || !client.phoneNumber) {
+      throw new BadRequestException('يجب ربط وتأكيد رقم الجوال أولاً لتتمكن من نشر طلب مشوار في ترحيل');
+    }
+
     if (dto.hasReturn && !dto.returnTime) {
       throw new BadRequestException('يجب تحديد وقت العودة بدقة');
     }

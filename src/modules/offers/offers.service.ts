@@ -24,6 +24,12 @@ export class OffersService {
       throw new ForbiddenException('لم يتم العثور على ملف السائق');
     }
 
+    if (!driverProfile.user.phoneNumber) {
+      throw new ForbiddenException(
+        'يجب ربط وتأكيد رقم الجوال أولاً لتتمكن من تقديم العروض في ترحيل.',
+      );
+    }
+
     if (!driverProfile.vehicle) {
       throw new ForbiddenException(
         'يرجى استكمال بيانات مركبتك ووثائقك الرسمية أولاً لتتمكن من تقديم العروض على هذا المشوار.',

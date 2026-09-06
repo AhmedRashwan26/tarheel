@@ -27,6 +27,9 @@ class ApiEndpoints {
   static String get sendOtp => '$baseUrl/auth/send-otp';
   static String get verifyOtp => '$baseUrl/auth/verify-otp';
   static String get registerClient => '$baseUrl/auth/register/client';
+  static String get googleLogin => '$baseUrl/auth/google';
+  static String get bindPhoneSendOtp => '$baseUrl/auth/bind-phone/send-otp';
+  static String get bindPhoneVerify => '$baseUrl/auth/bind-phone/verify';
 
   // Drivers
   static String get registerDriver => '$baseUrl/drivers/register';

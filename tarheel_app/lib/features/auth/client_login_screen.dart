@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
+import 'link_phone_screen.dart';
+import 'widgets/google_sign_in_button.dart';
 
 class ClientLoginScreen extends StatefulWidget {
   const ClientLoginScreen({super.key});
@@ -218,7 +220,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
               const SizedBox(height: 28),
 
               SizedBox(
-                height: 520,
+                height: 600,
                 child: TabBarView(
                   controller: _tabController,
                   children: [
@@ -277,7 +279,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
           ],
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
 
         ElevatedButton(
           onPressed: _isLoading ? null : _handleLogin,
@@ -289,6 +291,23 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
                 )
               : const Text('إرسال رمز التحقق (OTP)'),
         ),
+
+        const SizedBox(height: 18),
+
+        Row(
+          children: [
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text('أو المتابعة عبر', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            ),
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        const GoogleSignInButton(role: 'CLIENT'),
       ],
     );
   }
@@ -338,7 +357,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
             prefixIcon: Icon(Icons.email_outlined, color: AppColors.primary),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
         ElevatedButton(
           onPressed: _isLoading ? null : _handleRegister,
@@ -350,6 +369,23 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
                 )
               : const Text('إنشاء الحساب ومتابعة التحقق'),
         ),
+
+        const SizedBox(height: 18),
+
+        Row(
+          children: [
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text('أو التسجيل السريع عبر', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            ),
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        const GoogleSignInButton(role: 'CLIENT', label: 'إنشاء حساب عبر Google'),
       ],
     );
   }

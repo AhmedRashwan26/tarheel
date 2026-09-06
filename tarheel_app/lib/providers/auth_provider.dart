@@ -32,6 +32,10 @@ class AuthProvider extends ChangeNotifier {
     final isApproved = dp['verificationStatus'] == 'APPROVED' || dp['isVerified'] == true;
     return hasVehicle && isApproved;
   }
+  bool get hasVerifiedPhone {
+    final phone = _user?['phoneNumber'] ?? _user?['phone'];
+    return phone != null && phone.toString().trim().isNotEmpty;
+  }
 
   void setRole(String role) {
     _userRole = role;
@@ -290,6 +294,126 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } catch (_) {
       return true;
+    }
+  }
+
+  Future<bool> loginWithGoogle({
+    required String email,
+    required String fullName,
+    String? googleId,
+    String? avatarUrl,
+    String? role,
+  }) async {
+    _errorMessage = null;
+    _status = AuthStatus.loading;
+    notifyListeners();
+
+    final targetRole = role ?? _userRole;
+    try {
+      final response = await _api.post(
+        ApiEndpoints.googleLogin,
+        data: {
+          'email': email.trim().toLowerCase(),
+          'fullName': fullName.trim(),
+          if (googleId != null) 'googleId': googleId,
+          if (avatarUrl != null) 'avatarUrl': avatarUrl,
+          'role': targetRole,
+        },
+      );
+
+      final data = response.data['data'];
+      _token = data['accessToken'];
+      _user = data['user'];
+      if (_user?['role'] == 'ADMIN') {
+        _userRole = 'ADMIN';
+      } else {
+        _userRole = (targetRole == 'DRIVER' || _user?['role'] == 'DRIVER') ? 'DRIVER' : (_user?['role'] ?? targetRole);
+      }
+
+      if (_token != null) {
+        await StorageService.saveToken(_token!);
+        await StorageService.saveRole(_userRole);
+        if (_user != null) await StorageService.saveUserProfile(_user!);
+        if (_user?['id'] != null) SocketService().initSocket(_user!['id']);
+      }
+
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _status = AuthStatus.unauthenticated;
+      if (e is DioException) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          _errorMessage = resData['message'].toString();
+        } else {
+          _errorMessage = 'فشل تسجيل الدخول بحساب Google';
+        }
+      } else {
+        _errorMessage = 'تعذر الاتصال بالخادم';
+      }
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> sendBindPhoneOtp(String phoneNumber) async {
+    _errorMessage = null;
+    final normalized = normalizeIdentifier(phoneNumber);
+    try {
+      final response = await _api.post(
+        ApiEndpoints.bindPhoneSendOtp,
+        data: {'phoneNumber': normalized},
+      );
+      return response.data['success'] == true;
+    } catch (e) {
+      if (e is DioException) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          _errorMessage = resData['message'].toString();
+        } else {
+          _errorMessage = 'تعذر إرسال رمز التحقق لرقم الجوال';
+        }
+      } else {
+        _errorMessage = 'فشل إرسال رمز التحقق';
+      }
+      return false;
+    }
+  }
+
+  Future<bool> verifyAndBindPhone(String phoneNumber, String code) async {
+    _errorMessage = null;
+    final normalized = normalizeIdentifier(phoneNumber);
+    try {
+      final response = await _api.post(
+        ApiEndpoints.bindPhoneVerify,
+        data: {'phoneNumber': normalized, 'code': code.trim()},
+      );
+
+      final data = response.data['data'];
+      if (data?['user'] != null) {
+        _user = data['user'];
+        await StorageService.saveUserProfile(_user!);
+      }
+      if (data?['accessToken'] != null) {
+        _token = data['accessToken'];
+        await StorageService.saveToken(_token!);
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (e is DioException) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          _errorMessage = resData['message'].toString();
+        } else {
+          _errorMessage = 'رمز التحقق غير صحيح أو منتهي الصلاحية';
+        }
+      } else {
+        _errorMessage = 'فشل تأكيد وربط رقم الجوال';
+      }
+      return false;
     }
   }
 
