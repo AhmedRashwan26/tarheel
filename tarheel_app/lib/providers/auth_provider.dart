@@ -25,6 +25,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isDriver => _userRole == 'DRIVER';
   bool get isAdmin => _userRole == 'ADMIN' || _user?['role'] == 'ADMIN';
+  bool get isDriverFullyApproved {
+    final dp = _user?['driverProfile'];
+    if (dp == null) return false;
+    final hasVehicle = dp['vehicle'] != null;
+    final isApproved = dp['verificationStatus'] == 'APPROVED' || dp['isVerified'] == true;
+    return hasVehicle && isApproved;
+  }
 
   void setRole(String role) {
     _userRole = role;

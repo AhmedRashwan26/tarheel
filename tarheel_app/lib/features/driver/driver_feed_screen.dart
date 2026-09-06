@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
 import '../auth/driver_auth_screen.dart';
 import '../client/notifications_screen.dart';
@@ -62,6 +63,28 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
     });
     Provider.of<TripProvider>(context, listen: false)
         .fetchOpenTripsFeed(region == 'الكل' ? null : region);
+  }
+
+  void _handlePressSubmitBid(Map<String, dynamic> trip) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    // التحقق من استكمال السائق لمتطلبات التسجيل واعتماده
+    if (!auth.isDriverFullyApproved) {
+      final dp = auth.user?['driverProfile'];
+      final hasVehicle = dp != null && dp['vehicle'] != null;
+
+      String message;
+      if (!hasVehicle) {
+        message = 'لتقديم عرضك على هذا المشوار والتواصل مع العميل، يرجى استكمال متطلبات تسجيل المركبة والوثائق الرسمية أولاً 🚗';
+      } else {
+        message = 'طلبك قيد المراجعة والاعتماد حالياً من إدارة ترحيل. سيتم تفعيل إمكانية تقديم العروض فور التحقق النهائي من الوثائق.';
+      }
+
+      _showCompleteProfileMotivationalDialog(context, message);
+      return;
+    }
+
+    _showSubmitBidDialog(trip);
   }
 
   void _showSubmitBidDialog(Map<String, dynamic> trip) {
@@ -834,7 +857,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
 
           // Bid Submission Button
           ElevatedButton.icon(
-            onPressed: () => _showSubmitBidDialog(trip),
+            onPressed: () => _handlePressSubmitBid(trip),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
               foregroundColor: Colors.white,
