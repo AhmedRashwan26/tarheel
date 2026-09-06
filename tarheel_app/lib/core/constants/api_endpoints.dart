@@ -33,8 +33,13 @@ class ApiEndpoints {
 
   // Drivers
   static String get registerDriver => '$baseUrl/drivers/register';
+  static String get completeDriverProfile => '$baseUrl/drivers/complete-profile';
   static String get driverMe => '$baseUrl/drivers/me';
   static String driverDetails(String id) => '$baseUrl/drivers/$id';
+
+  // Users
+  static String get acceptTerms => '$baseUrl/users/accept-terms';
+  static String get updateProfile => '$baseUrl/users/profile';
 
   // Trips
   static String get createTrip => '$baseUrl/trips';

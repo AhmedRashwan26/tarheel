@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/location_service.dart';
 import '../../providers/trip_provider.dart';
+import '../terms/terms_and_conditions_screen.dart';
 
 class PostTripScreen extends StatefulWidget {
   final VoidCallback? onTripCreated;
@@ -36,6 +37,7 @@ class _PostTripScreenState extends State<PostTripScreen> {
   String _recurringDays = 'الأحد,الاثنين,الثلاثاء,الأربعاء,الخميس';
 
   bool _isLoading = false;
+  bool _agreeToTerms = true;
 
   @override
   void dispose() {
@@ -137,6 +139,16 @@ class _PostTripScreenState extends State<PostTripScreen> {
       return;
     }
 
+    if (!_agreeToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يجب الموافقة على الشروط والأحكام وسياسة منصة ترحيل لنشر المشوار'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final tripData = {
@@ -154,6 +166,7 @@ class _PostTripScreenState extends State<PostTripScreen> {
       'recurringDays': _recurringDays,
       'passengersCount': _passengersCount,
       'notes': _notesController.text.trim(),
+      'termsAccepted': _agreeToTerms,
     };
 
     final tripProvider = Provider.of<TripProvider>(context, listen: false);
@@ -416,7 +429,46 @@ class _PostTripScreenState extends State<PostTripScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
+
+                // Terms & Conditions Checkbox
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.cardBorder),
+                  ),
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _agreeToTerms,
+                        onChanged: (v) => setState(() => _agreeToTerms = v ?? false),
+                        title: const Text(
+                          'أوافق على وثيقة الشروط والأحكام وسياسة الخصوصية لمنصة ترحيل، والالتزام بالدفع الإلكتروني المعتمد وعدم التعامل النقدي.',
+                          style: TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        activeColor: AppColors.primary,
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                          label: const Text('قراءة الشروط والأحكام', style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: _isLoading ? null : _handlePostTrip,
                   icon: const Icon(Icons.send_rounded),

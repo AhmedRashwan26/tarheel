@@ -99,6 +99,115 @@ export class DriversService {
     };
   }
 
+  async completeDriverProfile(userId: string, dto: RegisterDriverDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('المستخدم غير موجود');
+    }
+
+    if (!user.phoneNumber) {
+      throw new BadRequestException('يجب ربط وتأكيد رقم الجوال أولاً قبل استكمال التسجيل');
+    }
+
+    const existingId = await this.prisma.driverProfile.findFirst({
+      where: { nationalId: dto.nationalId, NOT: { userId } },
+    });
+    if (existingId) {
+      throw new BadRequestException('رقم الهوية الوطنية مسجل مسبقاً لدى سائق آخر');
+    }
+
+    const existingPlate = await this.prisma.vehicle.findFirst({
+      where: { plateNumber: dto.plateNumber, NOT: { driverProfile: { userId } } },
+    });
+    if (existingPlate) {
+      throw new BadRequestException('رقم لوحة السيارة مسجل مسبقاً');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          fullName: dto.fullName || user.fullName,
+          avatarUrl: dto.profilePictureUrl || dto.avatarUrl || user.avatarUrl,
+          role: Role.DRIVER,
+          termsAccepted: true,
+          termsAcceptedAt: new Date(),
+        },
+      });
+
+      const driverProfile = await tx.driverProfile.upsert({
+        where: { userId },
+        update: {
+          nationalId: dto.nationalId,
+          idCardPhotoUrl: dto.idCardPhotoUrl,
+          driverLicenseUrl: dto.driverLicenseUrl,
+          vehicleRegistrationUrl: dto.vehicleRegistrationUrl,
+          bankName: dto.bankName,
+          iban: dto.iban,
+          bankAccountHolderName: dto.bankAccountHolderName,
+          bankCertificatePdfUrl: dto.bankCertificatePdfUrl,
+          verificationStatus: VerificationStatus.PENDING,
+          agreedToAntiCashPolicyAt: new Date(),
+        },
+        create: {
+          userId,
+          nationalId: dto.nationalId,
+          idCardPhotoUrl: dto.idCardPhotoUrl,
+          driverLicenseUrl: dto.driverLicenseUrl,
+          vehicleRegistrationUrl: dto.vehicleRegistrationUrl,
+          bankName: dto.bankName,
+          iban: dto.iban,
+          bankAccountHolderName: dto.bankAccountHolderName,
+          bankCertificatePdfUrl: dto.bankCertificatePdfUrl,
+          verificationStatus: VerificationStatus.PENDING,
+          agreedToAntiCashPolicyAt: new Date(),
+        },
+      });
+
+      const vehicle = await tx.vehicle.upsert({
+        where: { driverProfileId: driverProfile.id },
+        update: {
+          brand: dto.vehicleBrand,
+          model: dto.vehicleModel,
+          year: dto.vehicleYear,
+          plateNumber: dto.plateNumber,
+          capacity: dto.capacity,
+          isAirConditioned: dto.isAirConditioned,
+          photoFrontUrl: dto.photoFrontUrl,
+          photoBackUrl: dto.photoBackUrl,
+          photoRightUrl: dto.photoRightUrl,
+          photoLeftUrl: dto.photoLeftUrl,
+          photoInteriorUrl: dto.photoInteriorUrl,
+        },
+        create: {
+          driverProfileId: driverProfile.id,
+          brand: dto.vehicleBrand,
+          model: dto.vehicleModel,
+          year: dto.vehicleYear,
+          plateNumber: dto.plateNumber,
+          capacity: dto.capacity,
+          isAirConditioned: dto.isAirConditioned,
+          photoFrontUrl: dto.photoFrontUrl,
+          photoBackUrl: dto.photoBackUrl,
+          photoRightUrl: dto.photoRightUrl,
+          photoLeftUrl: dto.photoLeftUrl,
+          photoInteriorUrl: dto.photoInteriorUrl,
+        },
+      });
+
+      return { driverProfile, vehicle };
+    });
+
+    return {
+      message: 'تم استكمال بيانات السائق والمركبة والوثائق بنجاح والموافقة على الشروط والأحكام! طلبك قيد المراجعة من الإدارة.',
+      policyNotice: PLATFORM_CONSTANTS.DRIVER_TERMS_WARNING_AR,
+      driverProfile: {
+        ...result.driverProfile,
+        vehicle: result.vehicle,
+      },
+    };
+  }
+
   async getMyProfile(userId: string) {
     const profile = await this.prisma.driverProfile.findUnique({
       where: { userId },

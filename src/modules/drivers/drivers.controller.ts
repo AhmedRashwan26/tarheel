@@ -21,6 +21,20 @@ export class DriversController {
     return this.driversService.registerDriver(dto);
   }
 
+  @Post('complete-profile')
+  @ApiBearerAuth()
+  @Roles(Role.DRIVER)
+  @ApiOperation({
+    summary: 'إكمال بيانات السائق والوثائق وصور المركبة والآيبان والموافقة على الشروط والأحكام بعد الدخول',
+  })
+  @ApiResponse({ status: 200, description: 'تم إكمال بيانات السائق بنجاح وهو بانتظار اعتماد الإدارة' })
+  completeDriverProfile(
+    @CurrentUser('id') userId: string,
+    @Body() dto: RegisterDriverDto,
+  ) {
+    return this.driversService.completeDriverProfile(userId, dto);
+  }
+
   @Get('me')
   @ApiBearerAuth()
   @Roles(Role.DRIVER)

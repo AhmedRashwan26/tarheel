@@ -36,7 +36,7 @@ export class UsersService {
     });
   }
 
-  async updateProfile(userId: string, data: { avatarUrl?: string; fullName?: string }) {
+  async updateProfile(userId: string, data: { avatarUrl?: string; fullName?: string; termsAccepted?: boolean }) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('المستخدم غير موجود');
@@ -47,6 +47,23 @@ export class UsersService {
       data: {
         ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
         ...(data.fullName !== undefined && { fullName: data.fullName }),
+        ...(data.termsAccepted !== undefined && {
+          termsAccepted: data.termsAccepted,
+          termsAcceptedAt: data.termsAccepted ? new Date() : null,
+        }),
+      },
+      include: {
+        driverProfile: { include: { vehicle: true } },
+      },
+    });
+  }
+
+  async acceptTerms(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        termsAccepted: true,
+        termsAcceptedAt: new Date(),
       },
       include: {
         driverProfile: { include: { vehicle: true } },

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
-import '../auth/driver_auth_screen.dart';
+import '../auth/driver_registration_screen.dart';
 import '../client/notifications_screen.dart';
 
 class DriverFeedScreen extends StatefulWidget {
@@ -307,7 +307,7 @@ class _DriverFeedScreenState extends State<DriverFeedScreen> {
                   Navigator.pop(dialogCtx);
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const DriverAuthScreen(initialTabIndex: 1),
+                      builder: (_) => const DriverRegistrationScreen(),
                     ),
                   );
                 },

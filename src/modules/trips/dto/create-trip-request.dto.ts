@@ -96,4 +96,14 @@ export class CreateTripRequestDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({ example: true, required: false, description: 'الموافقة على الشروط والأحكام' })
+  @IsOptional()
+  @IsBoolean()
+  termsAccepted?: boolean;
+
+  @ApiProperty({ example: 'سارة محمد', required: false, description: 'الاسم الكامل للعميل إذا لم يكن محدداً مسبقاً' })
+  @IsOptional()
+  @IsString()
+  clientFullName?: string;
 }

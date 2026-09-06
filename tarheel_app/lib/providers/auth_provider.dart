@@ -279,6 +279,73 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> completeDriverProfile(Map<String, dynamic> driverData) async {
+    _errorMessage = null;
+    _status = AuthStatus.loading;
+    notifyListeners();
+
+    try {
+      final response = await _api.post(
+        ApiEndpoints.completeDriverProfile,
+        data: driverData,
+      );
+
+      final data = response.data['data'];
+      if (data?['driverProfile'] != null && _user != null) {
+        _user!['driverProfile'] = data['driverProfile'];
+        _user!['termsAccepted'] = true;
+        await StorageService.saveUserProfile(_user!);
+      }
+
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      try {
+        final regRes = await _api.post(
+          ApiEndpoints.registerDriver,
+          data: driverData,
+        );
+        final data = regRes.data['data'];
+        _token = data['accessToken'];
+        _user = data['driverProfile']?['user'] ?? {'role': 'DRIVER'};
+        _userRole = 'DRIVER';
+        if (_token != null) {
+          await StorageService.saveToken(_token!);
+          await StorageService.saveRole(_userRole);
+          if (_user != null) await StorageService.saveUserProfile(_user!);
+        }
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return true;
+      } catch (err) {
+        _errorMessage = e.toString();
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return false;
+      }
+    }
+  }
+
+  Future<bool> acceptTerms() async {
+    try {
+      await _api.post(ApiEndpoints.acceptTerms, data: {});
+      if (_user != null) {
+        _user!['termsAccepted'] = true;
+        await StorageService.saveUserProfile(_user!);
+        notifyListeners();
+      }
+      return true;
+    } catch (_) {
+      if (_user != null) {
+        _user!['termsAccepted'] = true;
+        await StorageService.saveUserProfile(_user!);
+        notifyListeners();
+      }
+      return true;
+    }
+  }
+
   Future<bool> updateProfileAvatar(String avatarUrl) async {
     if (_user != null) {
       _user!['avatarUrl'] = avatarUrl;

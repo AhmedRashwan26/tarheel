@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
-import 'link_phone_screen.dart';
 import 'widgets/google_sign_in_button.dart';
+import '../terms/terms_and_conditions_screen.dart';
 
 class ClientLoginScreen extends StatefulWidget {
   const ClientLoginScreen({super.key});
@@ -13,55 +13,23 @@ class ClientLoginScreen extends StatefulWidget {
   State<ClientLoginScreen> createState() => _ClientLoginScreenState();
 }
 
-class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  
-  // Login Controllers
+class _ClientLoginScreenState extends State<ClientLoginScreen> {
   final _loginIdentifierController = TextEditingController();
-  String _selectedChannel = 'WHATSAPP'; // 'WHATSAPP', 'SMS', 'EMAIL'
-  
-  // Register Controllers
-  final _fullNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
-
+  String _selectedChannel = 'WHATSAPP'; // 'WHATSAPP', 'EMAIL'
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _loginIdentifierController.dispose();
-    _fullNameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
     super.dispose();
-  }
-
-  bool get _isEmailInput {
-    final text = _loginIdentifierController.text.trim();
-    return text.contains('@');
-  }
-
-  bool get _isPhoneInput {
-    final text = _loginIdentifierController.text.trim();
-    if (text.isEmpty) return false;
-    return !text.contains('@') && RegExp(r'^[0-9+]+$').hasMatch(text);
   }
 
   void _onLoginIdentifierChanged(String value) {
     setState(() {
       final text = value.trim();
       if (text.contains('@')) {
-        // Automatically switch to Email channel
         _selectedChannel = 'EMAIL';
       } else if (text.isNotEmpty && RegExp(r'^[0-9+]+$').hasMatch(text)) {
-        // If it's a phone number and previous was Email, switch to WhatsApp
         if (_selectedChannel == 'EMAIL') {
           _selectedChannel = 'WHATSAPP';
         }
@@ -104,65 +72,6 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
     }
   }
 
-  Future<void> _handleRegister() async {
-    final fullName = _fullNameController.text.trim();
-    final phone = _phoneController.text.trim();
-    final email = _emailController.text.trim();
-
-    if (fullName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال الاسم الكامل')),
-      );
-      return;
-    }
-
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال رقم الجوال')),
-      );
-      return;
-    }
-
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال البريد الإلكتروني')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    auth.setRole('CLIENT');
-    final success = await auth.registerClient(
-      fullName: fullName,
-      phoneNumber: phone,
-      email: email,
-    );
-    setState(() => _isLoading = false);
-
-    if (success && mounted) {
-      await auth.sendOtp(phone, channel: 'WHATSAPP', role: 'CLIENT');
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => OtpVerificationScreen(
-              identifier: phone,
-              isRegistration: true,
-              role: 'CLIENT',
-            ),
-          ),
-        );
-      }
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.errorMessage ?? 'فشل إنشاء الحساب'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,22 +80,23 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 10),
               // Logo Header
               Center(
                 child: Image.asset(
                   'assets/images/logo.png',
-                  height: 110,
+                  height: 105,
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const Center(
                 child: Text(
-                  'حياك الله في ترحيل',
+                  'حياك الله في تـرحـيـل',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -194,43 +104,114 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
                   ),
                 ),
               ),
+              const SizedBox(height: 6),
+              const Center(
+                child: Text(
+                  'سجّل دخولك برقم جوالك أو بريدك الإلكتروني للمتابعة فوراً',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // Identifier Input
+              TextField(
+                controller: _loginIdentifierController,
+                keyboardType: TextInputType.emailAddress,
+                onChanged: _onLoginIdentifierChanged,
+                decoration: const InputDecoration(
+                  labelText: 'رقم الجوال أو البريد الإلكتروني',
+                  hintText: '+9665xxxxxxxx أو name@email.com',
+                  prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.primary),
+                ),
+              ),
               const SizedBox(height: 20),
 
-              // Tab Selector
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicator: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  tabs: const [
-                    Tab(text: 'تسجيل الدخول'),
-                    Tab(text: 'إنشاء حساب جديد'),
-                  ],
-                ),
+              // Channel Selector
+              const Text(
+                'قناة استلام رمز التحقق (OTP):',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(child: _buildChannelChip('WHATSAPP', 'عبر الواتساب', Icons.chat_bubble_rounded)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildChannelChip('EMAIL', 'عبر الإيميل', Icons.email_rounded)),
+                ],
+              ),
+
               const SizedBox(height: 28),
 
-              SizedBox(
-                height: 600,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Login Tab
-                    _buildLoginTab(),
-                    // Register Tab
-                    _buildRegisterTab(),
-                  ],
+              // Send OTP Button
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('إرسال رمز التحقق (OTP)'),
+              ),
+
+              const SizedBox(height: 22),
+
+              // Divider "أو"
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(
+                      'أو',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                ],
+              ),
+
+              const SizedBox(height: 18),
+
+              // Google Sign-In Button
+              const GoogleSignInButton(role: 'CLIENT'),
+
+              const SizedBox(height: 36),
+
+              // Terms & Conditions Footer Note
+              Center(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
+                        children: [
+                          const TextSpan(text: 'بالدخول واستخدام المنصة، فإنك توافق على '),
+                          TextSpan(
+                            text: 'الشروط والأحكام',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                          const TextSpan(text: ' وسياسة عدم التعامل النقدي.'),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -238,216 +219,34 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> with SingleTicker
     );
   }
 
-  Widget _buildLoginTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'حياك الله مجدداً!',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'أدخل رقم هاتفك أو بريدك الإلكتروني لاستلام رمز التحقق',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 20),
-
-        TextField(
-          controller: _loginIdentifierController,
-          keyboardType: TextInputType.emailAddress,
-          onChanged: _onLoginIdentifierChanged,
-          decoration: const InputDecoration(
-            labelText: 'رقم الجوال أو البريد الإلكتروني',
-            hintText: '+9665xxxxxxxx أو name@email.com',
-            prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.primary),
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        const Text(
-          'قناة استلام رمز التحقق المفضلة:',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 10),
-
-        Row(
-          children: [
-            Expanded(child: _buildChannelChip('WHATSAPP', 'عبر الواتساب', Icons.chat_bubble_rounded)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildChannelChip('EMAIL', 'عبر الإيميل', Icons.email_rounded)),
-          ],
-        ),
-
-        const SizedBox(height: 24),
-
-        ElevatedButton(
-          onPressed: _isLoading ? null : _handleLogin,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                )
-              : const Text('إرسال رمز التحقق (OTP)'),
-        ),
-
-        const SizedBox(height: 18),
-
-        Row(
-          children: [
-            Expanded(child: Divider(color: Colors.grey.shade300)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text('أو المتابعة عبر', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            ),
-            Expanded(child: Divider(color: Colors.grey.shade300)),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        const GoogleSignInButton(role: 'CLIENT'),
-      ],
-    );
-  }
-
-  Widget _buildRegisterTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'إنشاء حساب راكب جديد',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'سجل بياناتك للبدء بنشر المشاوير المجدولة',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 16),
-
-        TextField(
-          controller: _fullNameController,
-          decoration: const InputDecoration(
-            labelText: 'الاسم الكامل',
-            hintText: 'الاسم الثلاثي أو الكامل',
-            prefixIcon: Icon(Icons.badge_outlined, color: AppColors.primary),
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        TextField(
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'رقم الجوال',
-            hintText: '+9665xxxxxxxx',
-            prefixIcon: Icon(Icons.phone_iphone_rounded, color: AppColors.primary),
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        TextField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'البريد الإلكتروني',
-            hintText: 'name@example.com',
-            prefixIcon: Icon(Icons.email_outlined, color: AppColors.primary),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        ElevatedButton(
-          onPressed: _isLoading ? null : _handleRegister,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                )
-              : const Text('إنشاء الحساب ومتابعة التحقق'),
-        ),
-
-        const SizedBox(height: 18),
-
-        Row(
-          children: [
-            Expanded(child: Divider(color: Colors.grey.shade300)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text('أو التسجيل السريع عبر', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            ),
-            Expanded(child: Divider(color: Colors.grey.shade300)),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        const GoogleSignInButton(role: 'CLIENT', label: 'إنشاء حساب عبر Google'),
-      ],
-    );
-  }
-
   Widget _buildChannelChip(String value, String label, IconData icon) {
-    final isEmail = _isEmailInput;
-    final isPhone = _isPhoneInput;
-
-    bool isEnabled = true;
-    if (isEmail) {
-      // If typing email, only EMAIL is enabled
-      isEnabled = value == 'EMAIL';
-    } else if (isPhone) {
-      // If typing phone, only WHATSAPP is enabled (Email is disabled)
-      isEnabled = value == 'WHATSAPP';
-    }
-
-    final isSelected = _selectedChannel == value && isEnabled;
-
-    return Expanded(
-      child: Opacity(
-        opacity: isEnabled ? 1.0 : 0.35,
-        child: InkWell(
-          onTap: isEnabled ? () => setState(() => _selectedChannel = value) : null,
+    final isSelected = _selectedChannel == value;
+    return InkWell(
+      onTap: () => setState(() => _selectedChannel = value),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accent.withValues(alpha: 0.15) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.accent.withValues(alpha: 0.15)
-                  : (isEnabled ? Colors.white : Colors.grey.shade100),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.accent
-                    : (isEnabled ? AppColors.cardBorder : Colors.grey.shade300),
-                width: isSelected ? 2 : 1,
+          border: Border.all(
+            color: isSelected ? AppColors.accent : AppColors.cardBorder,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 22, color: isSelected ? AppColors.accent : AppColors.textSecondary),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? AppColors.accent : AppColors.textSecondary,
               ),
             ),
-            child: Column(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: isSelected
-                      ? AppColors.accent
-                      : (isEnabled ? AppColors.textSecondary : Colors.grey.shade400),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected
-                        ? AppColors.accent
-                        : (isEnabled ? AppColors.textSecondary : Colors.grey.shade400),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );

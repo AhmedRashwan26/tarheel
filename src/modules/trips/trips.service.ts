@@ -17,6 +17,27 @@ export class TripsService {
       throw new BadRequestException('يجب ربط وتأكيد رقم الجوال أولاً لتتمكن من نشر طلب مشوار في ترحيل');
     }
 
+    const isTermsAgreed = Boolean(client.termsAccepted || dto.termsAccepted);
+    if (!isTermsAgreed) {
+      throw new BadRequestException('يجب الموافقة على الشروط والأحكام وسياسة منصة ترحيل قبل نشر المشوار واستخدام خدمات المنصة');
+    }
+
+    // Persist terms acceptance and full name if newly provided
+    const userUpdates: any = {};
+    if (!client.termsAccepted && dto.termsAccepted) {
+      userUpdates.termsAccepted = true;
+      userUpdates.termsAcceptedAt = new Date();
+    }
+    if (dto.clientFullName && dto.clientFullName.trim().length >= 3 && (!client.fullName || client.fullName.includes('@') || client.fullName.startsWith('عميل '))) {
+      userUpdates.fullName = dto.clientFullName.trim();
+    }
+    if (Object.keys(userUpdates).length > 0) {
+      await this.prisma.user.update({
+        where: { id: clientId },
+        data: userUpdates,
+      });
+    }
+
     if (dto.hasReturn && !dto.returnTime) {
       throw new BadRequestException('يجب تحديد وقت العودة بدقة');
     }

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -28,11 +28,17 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @ApiOperation({ summary: 'تحديث الملف الشخصي والصورة الرمزية (Avatar)' })
+  @ApiOperation({ summary: 'تحديث الملف الشخصي والصورة الرمزية (Avatar) والاسم والشروط' })
   updateProfile(
     @CurrentUser('id') userId: string,
-    @Body() body: { avatarUrl?: string; fullName?: string },
+    @Body() body: { avatarUrl?: string; fullName?: string; termsAccepted?: boolean },
   ) {
     return this.usersService.updateProfile(userId, body);
+  }
+
+  @Post('accept-terms')
+  @ApiOperation({ summary: 'الموافقة الرسمية على الشروط والأحكام وسياسة منصة ترحيل' })
+  acceptTerms(@CurrentUser('id') userId: string) {
+    return this.usersService.acceptTerms(userId);
   }
 }
