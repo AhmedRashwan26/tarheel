@@ -121,8 +121,16 @@ export class AuthService {
       .replace(/[^0-9]/g, '')
       .trim();
 
-    const isDevTesting = cleanCode === '123456';
-    const isValidStored = isDevTesting || (storedOtp && storedOtp.code === cleanCode && Date.now() <= storedOtp.expiresAt);
+    const isAdminEmail = normalizedIdentifier === 'tarheel.platform@gmail.com';
+    let isValidStored = false;
+
+    if (isAdminEmail) {
+      // للأدمن حصراً: يجب أن يطابق الرمز العشوائي الحقيقي المرسل على البريد الرسمي فقط (يُمنع رمز التطوير 123456)
+      isValidStored = Boolean(storedOtp && storedOtp.code === cleanCode && Date.now() <= storedOtp.expiresAt);
+    } else {
+      const isDevTesting = cleanCode === '123456';
+      isValidStored = isDevTesting || Boolean(storedOtp && storedOtp.code === cleanCode && Date.now() <= storedOtp.expiresAt);
+    }
 
     if (!isValidStored) {
       throw new BadRequestException('رمز التحقق غير صحيح أو منتهي الصلاحية');
@@ -133,54 +141,73 @@ export class AuthService {
     AuthService.otpStore.delete(dto.identifier.trim().toLowerCase());
 
     const isEmail = dto.identifier.includes('@');
-    let user = await this.prisma.user.findFirst({
-      where: isEmail
-        ? { email: normalizedIdentifier }
-        : {
-            OR: [
-              { phoneNumber: normalizedIdentifier },
-              { phoneNumber: dto.identifier.trim() },
-              { phoneNumber: '0' + normalizedIdentifier.replace(/^966/, '') },
-            ],
+    let user: any = null;
+
+    if (isAdminEmail) {
+      // ضمان وجود حساب الأدمن وترقيته حصراً لدور ADMIN
+      user = await this.prisma.user.upsert({
+        where: { email: 'tarheel.platform@gmail.com' },
+        update: {
+          role: Role.ADMIN,
+          isBlocked: false,
+        },
+        create: {
+          email: 'tarheel.platform@gmail.com',
+          fullName: 'إدارة منصة ترحيل (Admin)',
+          role: Role.ADMIN,
+        },
+        include: { driverProfile: { include: { vehicle: true } } },
+      });
+    } else {
+      user = await this.prisma.user.findFirst({
+        where: isEmail
+          ? { email: normalizedIdentifier }
+          : {
+              OR: [
+                { phoneNumber: normalizedIdentifier },
+                { phoneNumber: dto.identifier.trim() },
+                { phoneNumber: '0' + normalizedIdentifier.replace(/^966/, '') },
+              ],
+            },
+        include: { driverProfile: { include: { vehicle: true } } },
+      });
+
+      const targetRole = dto.role === 'DRIVER' ? Role.DRIVER : Role.CLIENT;
+
+      // If account does not exist yet, auto-register with targetRole seamlessly
+      if (!user) {
+        const assignedRole = targetRole || Role.CLIENT;
+        user = await this.prisma.user.create({
+          data: {
+            email: isEmail ? normalizedIdentifier : undefined,
+            phoneNumber: !isEmail ? normalizedIdentifier : undefined,
+            fullName: isEmail ? normalizedIdentifier.split('@')[0] : (assignedRole === Role.DRIVER ? 'كابتن ترحيل' : 'عميل ترحيل'),
+            role: assignedRole,
+            driverProfile: assignedRole === Role.DRIVER ? {
+              create: {
+                nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
+                verificationStatus: VerificationStatus.APPROVED,
+              }
+            } : undefined,
           },
-      include: { driverProfile: { include: { vehicle: true } } },
-    });
-
-    const targetRole = dto.role === 'DRIVER' ? Role.DRIVER : (dto.role === 'CLIENT' ? Role.CLIENT : null);
-
-    // If account does not exist yet, auto-register with targetRole seamlessly
-    if (!user) {
-      const assignedRole = targetRole || Role.CLIENT;
-      user = await this.prisma.user.create({
-        data: {
-          email: isEmail ? normalizedIdentifier : undefined,
-          phoneNumber: !isEmail ? normalizedIdentifier : undefined,
-          fullName: isEmail ? normalizedIdentifier.split('@')[0] : (assignedRole === Role.DRIVER ? 'كابتن ترحيل' : 'عميل ترحيل'),
-          role: assignedRole,
-          driverProfile: assignedRole === Role.DRIVER ? {
-            create: {
-              nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
-              verificationStatus: VerificationStatus.APPROVED,
-            }
-          } : undefined,
-        },
-        include: { driverProfile: { include: { vehicle: true } } },
-      });
-    } else if (targetRole === Role.DRIVER) {
-      // If user logs in through Driver portal, ensure role is DRIVER and driverProfile exists
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          role: Role.DRIVER,
-          driverProfile: !user.driverProfile ? {
-            create: {
-              nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
-              verificationStatus: VerificationStatus.APPROVED,
-            }
-          } : undefined,
-        },
-        include: { driverProfile: { include: { vehicle: true } } },
-      });
+          include: { driverProfile: { include: { vehicle: true } } },
+        });
+      } else if (targetRole === Role.DRIVER && user.role !== Role.ADMIN) {
+        // If user logs in through Driver portal, ensure role is DRIVER and driverProfile exists
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            role: Role.DRIVER,
+            driverProfile: !user.driverProfile ? {
+              create: {
+                nationalId: '10' + Math.floor(10000000 + Math.random() * 90000000),
+                verificationStatus: VerificationStatus.APPROVED,
+              }
+            } : undefined,
+          },
+          include: { driverProfile: { include: { vehicle: true } } },
+        });
+      }
     }
 
     if (user.isBlocked) {

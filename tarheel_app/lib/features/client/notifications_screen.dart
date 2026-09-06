@@ -460,8 +460,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                 ),
 
-                // Car details & front photo preview box (if bid notification)
-                if (hasFrontPhoto || carFullName.isNotEmpty) ...[
+                // Car details & interior photo preview box (if bid notification)
+                if (hasInteriorPhoto || carFullName.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(10),

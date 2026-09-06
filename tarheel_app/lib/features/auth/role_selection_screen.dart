@@ -4,7 +4,6 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import 'client_login_screen.dart';
 import 'driver_auth_screen.dart';
-import '../admin/admin_dashboard_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -89,143 +88,9 @@ class RoleSelectionScreen extends StatelessWidget {
                 },
               ),
 
-              const SizedBox(height: 32),
-
-              // Admin Portal Button
-              TextButton.icon(
-                onPressed: () {
-                  final auth = Provider.of<AuthProvider>(context, listen: false);
-                  if (auth.isAuthenticated && auth.isAdmin) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-                    );
-                  } else {
-                    _showAdminLoginDialog(context);
-                  }
-                },
-                icon: const Icon(Icons.admin_panel_settings_rounded, size: 20, color: AppColors.primaryLight),
-                label: const Text(
-                  'بوابة الإدارة والتحكم (Admin Portal)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryLight,
-                  ),
-                ),
-              ),
-
-              const Spacer(flex: 2),
+              const Spacer(flex: 3),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showAdminLoginDialog(BuildContext context) {
-    final identifierCtrl = TextEditingController(text: '+966500000001');
-    final otpCtrl = TextEditingController(text: '123456');
-    bool otpSent = false;
-    bool isLoading = false;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (dialogCtx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.shield_rounded, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text('تسجيل دخول الإدارة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'الوصول خاص بإدارة المنصة والمشرفين فقط لمتابعة السائقين، خدمة العملاء، النزاعات والبث.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                textDirection: TextDirection.rtl,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: identifierCtrl,
-                enabled: !otpSent,
-                decoration: const InputDecoration(
-                  labelText: 'رقم الجوال أو البريد الإداري',
-                  prefixIcon: Icon(Icons.person_rounded),
-                ),
-              ),
-              if (otpSent) ...[
-                const SizedBox(height: 14),
-                TextField(
-                  controller: otpCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'رمز التحقق (OTP)',
-                    prefixIcon: Icon(Icons.lock_clock_rounded),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('إلغاء'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final auth = Provider.of<AuthProvider>(context, listen: false);
-                      if (!otpSent) {
-                        setDialogState(() => isLoading = true);
-                        final success = await auth.sendOtp(identifierCtrl.text.trim(), role: 'ADMIN');
-                        setDialogState(() {
-                          isLoading = false;
-                          if (success) otpSent = true;
-                        });
-                        if (!success && dialogCtx.mounted) {
-                          ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                            SnackBar(
-                              content: Text(auth.errorMessage ?? 'فشل إرسال الرمز للإدارة'),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                        }
-                      } else {
-                        setDialogState(() => isLoading = true);
-                        final success = await auth.verifyOtp(
-                          identifierCtrl.text.trim(),
-                          otpCtrl.text.trim(),
-                          role: 'ADMIN',
-                        );
-                        setDialogState(() => isLoading = false);
-                        if (success && dialogCtx.mounted) {
-                          Navigator.pop(dialogCtx);
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-                          );
-                        } else if (dialogCtx.mounted) {
-                          ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                            SnackBar(
-                              content: Text(auth.errorMessage ?? 'رمز التحقق الإداري غير صحيح'),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                        }
-                      }
-                    },
-              child: Text(
-                isLoading
-                    ? 'جاري التحقق...'
-                    : (otpSent ? 'دخول لوحة التحكم' : 'إرسال رمز الدخول'),
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
         ),
       ),
     );
